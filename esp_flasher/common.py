@@ -1,5 +1,6 @@
 import io
 import struct
+import os
 
 import esp_flasher.own_esptool as esptool
 
@@ -142,7 +143,7 @@ def detect_flash_size(stub_chip):
 def read_firmware_info(firmware):
     header = firmware.read(4)
     firmware.seek(0, os.SEEK_END)
-    firmware_size = f.tell()
+    firmware_size = firmware.tell()
     firmware.seek(0)
 
     magic, _, flash_mode_raw, flash_size_freq = struct.unpack("BBBB", header)
