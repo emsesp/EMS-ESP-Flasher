@@ -227,8 +227,12 @@ def configure_write_flash_args(
         bootloader = open_downloadable_binary(
             format_bootloader_path(bootloader_path, model, flash_mode, flash_freq)
         )
-        if firmware_size < 1400000 and flash_size == "4MB":
+        if firmware_size < 0x140000 and flash_size == "4MB":
             model = "loader"
+        elif firmware_size >= 0x1F0000 and flash_size == "4MB":
+            model = "asym"
+        else:
+            model = "esp32"
 
         if not partitions_path:
             partitions_path = format_partitions_path(ESP32_DEFAULT_PARTITIONS, model, flash_size)
