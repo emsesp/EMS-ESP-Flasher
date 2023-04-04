@@ -1,5 +1,6 @@
 import io
 import struct
+import os
 
 import esp_flasher.own_esptool as esptool
 
@@ -141,6 +142,8 @@ def detect_flash_size(stub_chip):
 
 def read_firmware_info(firmware):
     header = firmware.read(4)
+    firmware.seek(0, os.SEEK_END)
+    firmware_size = firmware.tell()
     firmware.seek(0)
 
     magic, _, flash_mode_raw, flash_size_freq = struct.unpack("BBBB", header)
@@ -151,7 +154,7 @@ def read_firmware_info(firmware):
     flash_freq_raw = flash_size_freq & 0x0F
     flash_mode = {0: "qio", 1: "qout", 2: "dio", 3: "dout"}.get(flash_mode_raw)
     flash_freq = {0: "40m", 1: "26m", 2: "20m", 0xF: "80m"}.get(flash_freq_raw)
-    return flash_mode, flash_freq
+    return flash_mode, flash_freq, firmware_size
 
 
 def open_downloadable_binary(path):
@@ -198,7 +201,7 @@ def configure_write_flash_args(
 ):
     addr_filename = []
     firmware = open_downloadable_binary(firmware_path)
-    flash_mode, flash_freq = read_firmware_info(firmware)
+    flash_mode, flash_freq, firmware_size = read_firmware_info(firmware)
     if isinstance(info, ESP32ChipInfo):
         ofs_partitions = 0x8000
         ofs_otadata = 0xe000
@@ -224,6 +227,12 @@ def configure_write_flash_args(
         bootloader = open_downloadable_binary(
             format_bootloader_path(bootloader_path, model, flash_mode, flash_freq)
         )
+        if firmware_size < 0x140000 and flash_size == "4MB":
+            model = "loader"
+        elif firmware_size >= 0x1F0000 and flash_size == "4MB":
+            model = "asym"
+        else:
+            model = "esp32"
 
         if not partitions_path:
             partitions_path = format_partitions_path(ESP32_DEFAULT_PARTITIONS, model, flash_size)
