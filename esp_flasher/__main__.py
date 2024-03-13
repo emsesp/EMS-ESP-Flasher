@@ -52,7 +52,7 @@ def parse_args(argv):
         default=ESP32_DEFAULT_OTA_DATA,
     )
     parser.add_argument(
-        "--no-erase", help="Do not erase flash before flashing", action="store_true"
+        "--erase", help="Erase flash before flashing", action="store_true"
     )
     parser.add_argument("--show-logs", help="Only show logs", action="store_true")
     parser.add_argument("binary", help="The binary image to flash.")
@@ -171,7 +171,7 @@ def run_esp_flasher(argv):
     except esptool.FatalError as err:
         raise Esp_flasherError(f"Error setting flash parameters: {err}") from err
 
-    if not args.no_erase:
+    if args.erase:
         try:
             esptool.erase_flash(stub_chip, mock_args)
         except esptool.FatalError as err:
