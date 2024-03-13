@@ -10,14 +10,14 @@ on:
 
 jobs:
   build-windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Python
         uses: actions/setup-python@v3
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           architecture: 'x64'
       - name: Install requirements
         run: |
@@ -26,20 +26,20 @@ jobs:
       - name: Run PyInstaller
         run: |
           python -m PyInstaller.__main__ -F -w -n ESP-Flasher -i icon.ico esp_flasher\__main__.py
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: Windows
           path: dist/ESP-Flasher.exe
 
   build-ubuntu:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
      - name: Checkout
-       uses: actions/checkout@v3
+       uses: actions/checkout@v4
      - name: Install Python
        uses: actions/setup-python@v3
        with:
-         python-version: '3.8'
+         python-version: '3.11'
      - name: Install dependencies
        run: |
          sudo apt update
@@ -60,21 +60,21 @@ jobs:
        run: gzip dist/ESP-Flasher
      - name: 'show gzip'
        run: ls dist
-     - uses: actions/upload-artifact@v2
+     - uses: actions/upload-artifact@v4
        with:
          name: Ubuntu
          path: dist/ESP-Flasher.gz
 
 
   build-macos:
-    runs-on: macOS-10.15
+    runs-on: macOS-13
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Python
         uses: actions/setup-python@v3
         with:
-          python-version: '3.9'
+          python-version: '3.11'
       - name: Install requirements
         run: |
           pip install -r requirements.txt -r requirements_build.txt
@@ -90,7 +90,7 @@ jobs:
       - name: 'Tar files'
         run: tar -cvf dist.tar dist/*
       - name: 'Upload Artifact'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: macOS
           path: dist.tar
