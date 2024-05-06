@@ -25,7 +25,7 @@ class MockEsptoolArgs:
         self.flash_freq = flash_freq
         self.no_stub = False
         self.verify = False
-        self.erase_all = False
+        self.erase = False
         self.encrypt = False
         self.encrypt_files = None
 

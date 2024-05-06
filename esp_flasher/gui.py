@@ -145,21 +145,23 @@ class RedirectText:
 
 
 class FlashingThread(threading.Thread):
-    def __init__(self, parent, firmware, port, show_logs=False):
+    def __init__(self, parent, firmware, port, erase, show_logs=False):
         threading.Thread.__init__(self)
         self.daemon = True
         self._parent = parent
         self._firmware = firmware
         self._port = port
+        self._erase = erase
         self._show_logs = show_logs
 
     def run(self):
         try:
             from esp_flasher.__main__ import run_esp_flasher
 
-            argv = ['esp_flasher', '--port', self._port, self._firmware]
+            argv = ['esp_flasher', '--port', self._port, '--erase', self._erase, self._firmware]
             if self._show_logs:
                 argv.append('--show-logs')
+            print(argv)
             run_esp_flasher(argv)
         except Exception as e:
             print("Unexpected error: {}".format(e))
@@ -173,6 +175,7 @@ class MainFrame(wx.Frame):
 
         self._firmware = None
         self._port = None
+        self._erase = False
 
         self._init_ui()
 
@@ -188,17 +191,20 @@ class MainFrame(wx.Frame):
 
         def on_clicked(event):
             self.console_ctrl.SetValue("")
-            worker = FlashingThread(self, self._firmware, self._port)
+            worker = FlashingThread(self, self._firmware, self._port, self._erase)
             worker.start()
 
         def on_logs_clicked(event):
             self.console_ctrl.SetValue("")
-            worker = FlashingThread(self, 'dummy', self._port, show_logs=True)
+            worker = FlashingThread(self, 'dummy', self._port, self._erase, show_logs=True)
             worker.start()
 
         def on_select_port(event):
             choice = event.GetEventObject()
             self._port = choice.GetString(choice.GetSelection())
+
+        def on_select_erase(event):
+            self._erase = event.IsChecked()
 
         def on_pick_file(event):
             self._firmware = event.GetPath().replace("'", "")
@@ -243,11 +249,17 @@ class MainFrame(wx.Frame):
 
         console_label = wx.StaticText(panel, label="Console")
 
+        erase_checkbox = wx.CheckBox(panel, -1, 'Erase Flash')
+        erase_checkbox.SetValue(False)
+        erase_checkbox.Bind(wx.EVT_CHECKBOX, on_select_erase)
+
         fgs.AddMany([
             # Port selection row
             port_label, (serial_boxsizer, 1, wx.EXPAND),
             # Firmware selection row (growable)
             file_label, (file_picker, 1, wx.EXPAND),
+            # Erase Flash checkbox
+            (wx.StaticText(panel, label="")), (erase_checkbox, 1),
             # Flash ESP button
             (wx.StaticText(panel, label="")), (button, 1, wx.EXPAND),
             # View Logs button
@@ -255,7 +267,7 @@ class MainFrame(wx.Frame):
             # Console View (growable)
             (console_label, 1, wx.EXPAND), (self.console_ctrl, 1, wx.EXPAND),
         ])
-        fgs.AddGrowableRow(4, 1)
+        fgs.AddGrowableRow(5, 1)
         fgs.AddGrowableCol(1, 1)
         hbox.Add(fgs, proportion=2, flag=wx.ALL | wx.EXPAND, border=15)
         panel.SetSizer(hbox)
@@ -329,7 +341,6 @@ Reload = PyEmbeddedImage(
     "biBHYWxsZXJ5IGh0dHA6Ly9pY29uZ2FsLmNvbS/RLzdIAAAAJXRFWHRkYXRlOmNyZWF0ZQAy"
     "MDExLTA4LTIxVDE0OjAxOjU2LTA2OjAwdNJAnQAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxMS0w"
     "OC0yMVQxNDowMTo1Ni0wNjowMAWP+CEAAAAASUVORK5CYII=")
-
 
 def main():
     app = App(False)

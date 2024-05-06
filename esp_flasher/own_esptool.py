@@ -3932,7 +3932,7 @@ def write_flash(esp, args):
                                  % (argfile.name, argfile.tell(), address, flash_end))
             argfile.seek(0)
 
-    if args.erase_all:
+    if args.erase:
         erase_flash(esp, args)
     else:
         for address, argfile in args.addr_filename:
@@ -4515,7 +4515,7 @@ def main(argv=None, esp=None):
 
     parser_write_flash.add_argument('addr_filename', metavar='<address> <filename>', help='Address followed by binary filename, separated by space',
                                     action=AddrFilenamePairAction)
-    parser_write_flash.add_argument('--erase-all', '-e',
+    parser_write_flash.add_argument('--erase', '-e',
                                     help='Erase all regions of flash (not just write areas) before programming',
                                     action="store_true")
 
