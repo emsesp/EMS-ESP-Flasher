@@ -84,7 +84,7 @@ def show_logs(serial_port):
             try:
                 raw = serial_port.readline()
             except serial.SerialException:
-                print("Serial port closed!")
+                print("Serial Port closed!")
                 return
             text = raw.decode(errors="ignore")
             line = text.replace("\r", "").replace("\n", "")

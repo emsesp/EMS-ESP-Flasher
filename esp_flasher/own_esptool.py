@@ -104,7 +104,7 @@ def get_default_connected_device(serial_list, port, connect_attempts, initial_ba
                                  before='default_reset'):
     _esp = None
     for each_port in reversed(serial_list):
-        print("Serial port %s" % each_port)
+        print("Serial Port %s" % each_port)
         try:
             if chip == 'auto':
                 _esp = ESPLoader.detect_chip(each_port, initial_baud, before, trace,
@@ -4407,12 +4407,12 @@ def main(argv=None, esp=None):
 
     parser.add_argument(
         '--port', '-p',
-        help='Serial port device',
+        help='Serial Port device',
         default=os.environ.get('ESPTOOL_PORT', None))
 
     parser.add_argument(
         '--baud', '-b',
-        help='Serial port baud rate used when flashing/reading',
+        help='Serial Port baud rate used when flashing/reading',
         type=arg_auto_int,
         default=os.environ.get('ESPTOOL_BAUD', ESPLoader.ESP_ROM_BAUD))
 
