@@ -16,6 +16,9 @@ use partitions from ems-esp
   
 - `source ./venv/bin/activate` to enter it
 
+for installing fir time:
 `pip3 install wxpython`
-
 `pip3 install -e .` to install the libraries
+
+for running:
+`esp_flasher`
