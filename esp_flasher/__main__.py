@@ -61,9 +61,7 @@ def parse_args(argv):
 
 
 def select_port(args):
-    if args.port is not None:
-        print(f"Using '{args.port}' as serial port.")
-        return args.port
+
     ports = list_serial_ports()
     if not ports:
         raise Esp_flasherError("No serial port found!")
@@ -74,6 +72,9 @@ def select_port(args):
         print("Please choose one with the --port argument.")
         raise Esp_flasherError
     print(f"Auto-detected serial port: {ports[0][0]}")
+    if args.port is not None:
+        print(f"Using '{args.port}' as serial port.")
+        return args.port
     return ports[0][0]
 
 
@@ -84,7 +85,7 @@ def show_logs(serial_port):
             try:
                 raw = serial_port.readline()
             except serial.SerialException:
-                print("Serial port closed!")
+                print("Serial Port closed!")
                 return
             text = raw.decode(errors="ignore")
             line = text.replace("\r", "").replace("\n", "")
@@ -104,6 +105,9 @@ def run_esp_flasher(argv):
         serial_port = serial.Serial(port, baudrate=115200)
         show_logs(serial_port)
         return
+
+    if args.binary is None:
+        raise Esp_flasherError("No firmware file specified!")
 
     try:
         # pylint: disable=consider-using-with

@@ -31,7 +31,7 @@ def prevent_print(func, *args, **kwargs):
     except serial.SerialException as err:
         from esp_flasher.common import EspflasherError
 
-        raise EspflasherError("Serial port closed: {}".format(err))
+        raise EspflasherError("Serial Port closed: {}".format(err))
     finally:
         sys.stdout = orig_sys_stdout
         sys.stdout.isatty = lambda: False

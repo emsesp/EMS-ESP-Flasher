@@ -158,10 +158,11 @@ class FlashingThread(threading.Thread):
         try:
             from esp_flasher.__main__ import run_esp_flasher
 
-            argv = ['esp_flasher', '--port', self._port, '--erase', self._erase, self._firmware]
+            argv = ['esp_flasher', '--port', self._port, self._firmware]
             if self._show_logs:
                 argv.append('--show-logs')
-            print(argv)
+            if self._erase:
+                argv.append('--erase')
             run_esp_flasher(argv)
         except Exception as e:
             print("Unexpected error: {}".format(e))
@@ -244,7 +245,7 @@ class MainFrame(wx.Frame):
         self.console_ctrl.SetForegroundColour(wx.WHITE)
         self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.WHITE))
 
-        port_label = wx.StaticText(panel, label="Serial port")
+        port_label = wx.StaticText(panel, label="Serial Port")
         file_label = wx.StaticText(panel, label="Firmware")
 
         console_label = wx.StaticText(panel, label="Console")
@@ -293,9 +294,9 @@ class MainFrame(wx.Frame):
 class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
     def OnInit(self):
         wx.SystemOptions.SetOption("mac.window-plain-transition", 1)
-        self.SetAppName("EMS-ESP-flasher (based on PyFlasher)")
+        self.SetAppName("EMS-ESP-Flasher")
 
-        frame = MainFrame(None, "EMS-ESP-flasher (based on PyFlasher)")
+        frame = MainFrame(None, "EMS-ESP-Flasher")
         frame.Show()
 
         return True
