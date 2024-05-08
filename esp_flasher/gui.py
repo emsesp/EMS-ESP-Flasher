@@ -158,10 +158,12 @@ class FlashingThread(threading.Thread):
         try:
             from esp_flasher.__main__ import run_esp_flasher
 
-            argv = ['esp_flasher', '--port', self._port, '--erase', self._erase, self._firmware]
+            argv = ['esp_flasher', '--port', self._port, self._firmware]
+            if self._erase:
+                argv.append('--erase')
             if self._show_logs:
                 argv.append('--show-logs')
-            print(argv)
+            # print(argv)
             run_esp_flasher(argv)
         except Exception as e:
             print("Unexpected error: {}".format(e))
