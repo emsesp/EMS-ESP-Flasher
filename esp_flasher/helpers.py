@@ -20,6 +20,7 @@ def list_serial_ports():
             desc = split_desc[0]
         result.append((port, desc))
     result.sort()
+    # return[('COM1', 'USB Serial Port 1'),('COM2', 'USB Serial Port 2')]    # for testing EMS-ESP
     return result
 
 

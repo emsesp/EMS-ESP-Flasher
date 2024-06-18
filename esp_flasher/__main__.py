@@ -20,7 +20,7 @@ from esp_flasher.common import (
 )
 from esp_flasher.const import (
     ESP32_DEFAULT_BOOTLOADER_FORMAT,
-    ESP32_DEFAULT_OTA_DATA,
+    ESP32_DEFAULT_OTA_DATA
 )
 from esp_flasher.helpers import list_serial_ports
 
@@ -31,28 +31,41 @@ def parse_args(argv):
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument("--esp8266", action="store_true")
     group.add_argument("--esp32", action="store_true")
+    group.add_argument("--esp32s2", action="store_true")
+    group.add_argument("--esp32s3", action="store_true")
+    group.add_argument("--esp32c2", action="store_true")
+    group.add_argument("--esp32c3", action="store_true")
+    group.add_argument("--esp32c6", action="store_true")
     group.add_argument(
         "--upload-baud-rate",
         type=int,
-        default=460800,
-        help="Baud rate to upload with (not for logging)",
+        default=1500000,
+        help="Baud rate to upload (not for logging)",
     )
     parser.add_argument(
         "--bootloader",
-        help="(ESP32-only) The bootloader to flash.",
+        help="(ESP32x-only) The bootloader to flash.",
         default=ESP32_DEFAULT_BOOTLOADER_FORMAT,
     )
     parser.add_argument(
+        "--safeboot",
+        help="(ESP32x-only) The safeboot factory image to flash.",
+    )
+    parser.add_argument(
+        "--input",
+        help="(ESP32x-only) The bootloader elf file to flash.",
+    )
+    parser.add_argument(
         "--partitions",
-        help="(ESP32-only) The partitions to flash.",
+        help="(ESP32x-only) The partitions to flash.",
     )
     parser.add_argument(
         "--otadata",
-        help="(ESP32-only) The otadata file to flash.",
+        help="(ESP32x-only) The otadata file to flash.",
         default=ESP32_DEFAULT_OTA_DATA,
     )
     parser.add_argument(
-        "--erase", help="Erase flash before flashing", action="store_true"
+        "--no-erase", help="Do not erase flash before flashing", action="store_true"
     )
     parser.add_argument("--show-logs", help="Only show logs", action="store_true")
     parser.add_argument("binary", help="The binary image to flash.")
@@ -61,7 +74,9 @@ def parse_args(argv):
 
 
 def select_port(args):
-
+    if args.port is not None:
+        print(f"Using '{args.port}' as serial port.")
+        return args.port
     ports = list_serial_ports()
     if not ports:
         raise Esp_flasherError("No serial port found!")
@@ -72,9 +87,6 @@ def select_port(args):
         print("Please choose one with the --port argument.")
         raise Esp_flasherError
     print(f"Auto-detected serial port: {ports[0][0]}")
-    if args.port is not None:
-        print(f"Using '{args.port}' as serial port.")
-        return args.port
     return ports[0][0]
 
 
@@ -85,7 +97,7 @@ def show_logs(serial_port):
             try:
                 raw = serial_port.readline()
             except serial.SerialException:
-                print("Serial Port closed!")
+                print("Serial port closed!")
                 return
             text = raw.decode(errors="ignore")
             line = text.replace("\r", "").replace("\n", "")
@@ -99,15 +111,16 @@ def show_logs(serial_port):
 
 def run_esp_flasher(argv):
     args = parse_args(argv)
+    
+    # for testing with EMS-ESP
+    # print(argv)
+    # print(args)
     port = select_port(args)
 
     if args.show_logs:
         serial_port = serial.Serial(port, baudrate=115200)
         show_logs(serial_port)
         return
-
-    if args.binary is None:
-        raise Esp_flasherError("No firmware file specified!")
 
     try:
         # pylint: disable=consider-using-with
@@ -137,7 +150,7 @@ def run_esp_flasher(argv):
     stub_chip = chip_run_stub(chip)
     flash_size = None
 
-    if args.upload_baud_rate != 115200:
+    if (args.upload_baud_rate != 115200) and ("ESP32" in info.family):
         try:
             stub_chip.change_baud(args.upload_baud_rate)
         except esptool.FatalError as err:
@@ -163,19 +176,45 @@ def run_esp_flasher(argv):
 
     print(f" - Flash Size: {flash_size}")
 
-    mock_args = configure_write_flash_args(
-        info, firmware, flash_size, args.bootloader, args.partitions, args.otadata
-    )
+    flag_factory = False
+    min_rev = 0
+    min_rev_full = 0
+    max_rev_full = 65535
+    secure_pad = "False"
+    secure_pad_v2 = "False"
+    elf_sha256_offset = ""
+    use_segments = ""
+    flash_mmu_page_size = ""
+    pad_to_size = ""
+    spi_connection = ""
+    output = ""
 
-    print(f" - Flash Mode: {mock_args.flash_mode}")
-    print(f" - Flash Frequency: {mock_args.flash_freq.upper()}Hz")
+    mock_args = configure_write_flash_args(
+        info, chip, flag_factory, args.safeboot, firmware, flash_size, args.bootloader, args.partitions, args.otadata,
+        args.input, secure_pad, secure_pad_v2, min_rev, min_rev_full, max_rev_full, elf_sha256_offset,
+        use_segments, flash_mmu_page_size, pad_to_size, spi_connection, output
+    )
+    if (not "ESP8266" in info.family) and (not mock_args.flag_factory):
+        try:
+            esptool.elf2image(mock_args)
+        except esptool.FatalError as err:
+            raise Esp_flasherError(f"Error while converting elf to bin: {err}") from err
+
+        mock_args = configure_write_flash_args(
+            info, chip, flag_factory, args.safeboot, firmware, flash_size, args.bootloader, args.partitions, args.otadata,
+            args.input, secure_pad, secure_pad_v2, min_rev, min_rev_full, max_rev_full, elf_sha256_offset,
+            use_segments, flash_mmu_page_size, pad_to_size, spi_connection, output
+        )
+
+    #print(f" - Flash Mode: {mock_args.flash_mode}")
+    #print(f" - Flash Frequency: {mock_args.flash_freq.upper()}Hz")
 
     try:
         stub_chip.flash_set_parameters(esptool.flash_size_bytes(flash_size))
     except esptool.FatalError as err:
         raise Esp_flasherError(f"Error setting flash parameters: {err}") from err
 
-    if args.erase:
+    if not args.no_erase:
         try:
             esptool.erase_flash(stub_chip, mock_args)
         except esptool.FatalError as err:
