@@ -23,3 +23,7 @@ for installing first time:
 
 for running:
 `python3 esp_flasher`
+
+## Virus warning on Windows
+
+If windows blocks the .exe file, it's a false positive. See [here](<https://github.com/pyinstaller/pyinstaller/issues/3802>).
