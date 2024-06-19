@@ -26,4 +26,4 @@ for running:
 
 ## Virus warning on Windows
 
-If windows blocks the .exe file, it's a false positive. See [here](<https://github.com/pyinstaller/pyinstaller/issues/3802>).
+If windows blocks the .exe file, it's a false positive. See [here](<https://github.com/pyinstaller/pyinstaller/issues/3802>) and [here](<https://github.com/Jason2866/ESP_Flasher/issues/35>) for more information.
