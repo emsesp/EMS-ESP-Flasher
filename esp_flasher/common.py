@@ -160,13 +160,15 @@ def detect_flash_size(stub_chip):
 def read_firmware_info(firmware):
     firmware.seek(0x10000)  # Check for safeboot image
     header = firmware.read(4)
+    firmware_size = firmware.tell()
+
     magic, _, flash_mode_raw, flash_size_freq = struct.unpack("BBBB", header)
     if magic == esptool.ESPLoader.ESP_IMAGE_MAGIC:
         flash_freq_raw = flash_size_freq & 0x0F
         flash_mode = {0: "qio", 1: "qout", 2: "dio", 3: "dout"}.get(flash_mode_raw)
         flash_freq = {0: "40m", 1: "26m", 2: "20m", 0xF: "80m"}.get(flash_freq_raw)
         flag_factory = True
-        return flash_mode, flash_freq, flag_factory
+        return flash_mode, flash_freq, flag_factory, firmware_size
 
     firmware.seek(0)  # Check for firmware image
     header = firmware.read(4)
@@ -176,7 +178,7 @@ def read_firmware_info(firmware):
         flash_mode = {0: "qio", 1: "qout", 2: "dio", 3: "dout"}.get(flash_mode_raw)
         flash_freq = {0: "40m", 1: "26m", 2: "20m", 0xF: "80m"}.get(flash_freq_raw)
         flag_factory = False
-        return flash_mode, flash_freq, flag_factory
+        return flash_mode, flash_freq, flag_factory, firmware_size
 
     if magic != esptool.ESPLoader.ESP_IMAGE_MAGIC:
         raise Esp_flasherError(
@@ -218,10 +220,9 @@ def open_downloadable_binary(path):
 def format_bootloader_path(path, model, flash_mode, flash_freq):
     return path.replace("$MODEL$", model).replace("$FLASH_MODE$", flash_mode).replace("$FLASH_FREQ$", flash_freq)
 
-
-def format_partitions_path(path, model):
-    return path.replace("$MODEL$", model)
-
+# EMS-ESP
+def format_partitions_path(path, model, size):
+    return path.replace("$MODEL$", model).replace("$FLASH$", size)
 
 def configure_write_flash_args(
     info, chip, flag_factory, factory_firm_path, firmware_path, flash_size, bootloader_path, partitions_path, otadata_path, input, secure_pad, secure_pad_v2,
@@ -229,7 +230,7 @@ def configure_write_flash_args(
 ):
     addr_filename = []
     firmware = open_downloadable_binary(firmware_path)
-    flash_mode, flash_freq, flag_factory = read_firmware_info(firmware)
+    flash_mode, flash_freq, flag_factory, firmware_size = read_firmware_info(firmware)
     if flag_factory:
         print("Detected factory firmware Image, flashing without changes")
     if (isinstance(info, ESP32ChipInfo)):  # No esp8266 image, fetching and processing needed files
@@ -240,30 +241,36 @@ def configure_write_flash_args(
 
         if "ESP32-C2" in info.model:
             model = "esp32c2"
-            safeboot = "tasmota32c2-safeboot.bin"
+            # safeboot = "tasmota32c2-safeboot.bin"
             ofs_bootloader = 0x0
             flash_freq = "60m"  # For Tasmota we use only fastest
         elif "ESP32-C3" in info.model:
             model = "esp32c3"
-            safeboot = "tasmota32c3-safeboot.bin"
+            # safeboot = "tasmota32c3-safeboot.bin"
             ofs_bootloader = 0x0
         elif "ESP32-C6" in info.model:
             model = "esp32c6"
-            safeboot = "tasmota32c6-safeboot.bin"
+            # safeboot = "tasmota32c6-safeboot.bin"
             ofs_bootloader = 0x0
             flash_freq = "80m"  # For Tasmota we use only fastest
         elif "ESP32-S3" in info.model:
             model = "esp32s3"
-            safeboot = "tasmota32s3-safeboot.bin"
+            # safeboot = "tasmota32s3-safeboot.bin"
             ofs_bootloader = 0x0
         elif "ESP32-S2" in info.model:
             model = "esp32s2"
-            safeboot = "tasmota32s2-safeboot.bin"
+            # safeboot = "tasmota32s2-safeboot.bin"
             ofs_bootloader = 0x1000
         else:
             model = "esp32"
-            safeboot = "tasmota32solo1-safeboot.bin"
+            # safeboot = "tasmota32solo1-safeboot.bin"
             ofs_bootloader = 0x1000
+
+        # EMS-ESP            
+        if firmware_size < 0x140000 and flash_size == "4MB":
+            model = "loader"
+        elif firmware_size >= 0x1F0000 and flash_size == "4MB":
+            model = "asym"   
 
         if flash_freq in ("15", "20m", "26m", "30"):
             raise Esp_flasherError(
@@ -308,7 +315,7 @@ def configure_write_flash_args(
 
             input = boot_loader_file    # local downloaded elf bootloader file
             if not partitions_path:
-                partitions_path = format_partitions_path(ESP32_DEFAULT_PARTITIONS, model)
+                partitions_path = format_partitions_path(ESP32_DEFAULT_PARTITIONS, model, flash_size)
             # if not factory_firm_path:
                 # factory_firm_path = ESP32_SAFEBOOT_SERVER + safeboot
 

@@ -18,7 +18,6 @@ Based on [https://github.com/Jason2866/ESP_Flasher/](https://github.com/Jason286
 - `source ./venv/bin/activate` to enter it
 
 for installing first time:
-`pip3 install wxpython`
 `pip3 install -e .` to install the libraries
 
 for running:
