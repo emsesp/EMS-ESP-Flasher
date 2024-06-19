@@ -111,10 +111,8 @@ def show_logs(serial_port):
 
 def run_esp_flasher(argv):
     args = parse_args(argv)
-    
-    # for testing with EMS-ESP
-    # print(argv)
-    # print(args)
+   
+    # print(args)  # for testing with EMS-ESP
     port = select_port(args)
 
     if args.show_logs:

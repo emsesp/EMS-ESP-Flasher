@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
 
         self._firmware = None
         self._port = None
-        self._no_erase = False
+        self._no_erase = True
 
         self.init_ui()
         sys.stdout = RedirectText(self.console)  # Redirect stdout to console
@@ -114,7 +114,7 @@ class MainWindow(QMainWindow):
 
         firmware_group_box = QGroupBox("Firmware")
         firmware_layout = QGridLayout()
-        self.firmware_no_erase_checkbox = QCheckBox(text="Keep all settings")
+        self.firmware_no_erase_checkbox = QCheckBox(text="Keep all settings", checked=True)
         firmware_layout.addWidget(self.firmware_no_erase_checkbox)
         self.firmware_no_erase_checkbox.stateChanged.connect(self.select_no_erase)
         firmware_label = QLabel("Select Firmware:")
