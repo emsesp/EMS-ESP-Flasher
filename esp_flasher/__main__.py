@@ -20,7 +20,7 @@ from esp_flasher.common import (
 )
 from esp_flasher.const import (
     ESP32_DEFAULT_BOOTLOADER_FORMAT,
-    ESP32_DEFAULT_OTA_DATA
+    ESP32_DEFAULT_OTA_DATA,
 )
 from esp_flasher.helpers import list_serial_ports
 
@@ -31,41 +31,28 @@ def parse_args(argv):
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument("--esp8266", action="store_true")
     group.add_argument("--esp32", action="store_true")
-    group.add_argument("--esp32s2", action="store_true")
-    group.add_argument("--esp32s3", action="store_true")
-    group.add_argument("--esp32c2", action="store_true")
-    group.add_argument("--esp32c3", action="store_true")
-    group.add_argument("--esp32c6", action="store_true")
     group.add_argument(
         "--upload-baud-rate",
         type=int,
-        default=1500000,
-        help="Baud rate to upload (not for logging)",
+        default=460800,
+        help="Baud rate to upload with (not for logging)",
     )
     parser.add_argument(
         "--bootloader",
-        help="(ESP32x-only) The bootloader to flash.",
+        help="(ESP32-only) The bootloader to flash.",
         default=ESP32_DEFAULT_BOOTLOADER_FORMAT,
     )
     parser.add_argument(
-        "--safeboot",
-        help="(ESP32x-only) The safeboot factory image to flash.",
-    )
-    parser.add_argument(
-        "--input",
-        help="(ESP32x-only) The bootloader elf file to flash.",
-    )
-    parser.add_argument(
         "--partitions",
-        help="(ESP32x-only) The partitions to flash.",
+        help="(ESP32-only) The partitions to flash.",
     )
     parser.add_argument(
         "--otadata",
-        help="(ESP32x-only) The otadata file to flash.",
+        help="(ESP32-only) The otadata file to flash.",
         default=ESP32_DEFAULT_OTA_DATA,
     )
     parser.add_argument(
-        "--no-erase", help="Do not erase flash before flashing", action="store_true"
+        "--erase", help="Erase flash before flashing", action="store_true"
     )
     parser.add_argument("--show-logs", help="Only show logs", action="store_true")
     parser.add_argument("binary", help="The binary image to flash.")
@@ -111,8 +98,6 @@ def show_logs(serial_port):
 
 def run_esp_flasher(argv):
     args = parse_args(argv)
-   
-    # print(args)  # for testing with EMS-ESP
     port = select_port(args)
 
     if args.show_logs:
@@ -148,7 +133,7 @@ def run_esp_flasher(argv):
     stub_chip = chip_run_stub(chip)
     flash_size = None
 
-    if (args.upload_baud_rate != 115200) and ("ESP32" in info.family):
+    if args.upload_baud_rate != 115200:
         try:
             stub_chip.change_baud(args.upload_baud_rate)
         except esptool.FatalError as err:
@@ -174,45 +159,19 @@ def run_esp_flasher(argv):
 
     print(f" - Flash Size: {flash_size}")
 
-    flag_factory = False
-    min_rev = 0
-    min_rev_full = 0
-    max_rev_full = 65535
-    secure_pad = "False"
-    secure_pad_v2 = "False"
-    elf_sha256_offset = ""
-    use_segments = ""
-    flash_mmu_page_size = ""
-    pad_to_size = ""
-    spi_connection = ""
-    output = ""
-
     mock_args = configure_write_flash_args(
-        info, chip, flag_factory, args.safeboot, firmware, flash_size, args.bootloader, args.partitions, args.otadata,
-        args.input, secure_pad, secure_pad_v2, min_rev, min_rev_full, max_rev_full, elf_sha256_offset,
-        use_segments, flash_mmu_page_size, pad_to_size, spi_connection, output
+        info, firmware, flash_size, args.bootloader, args.partitions, args.otadata
     )
-    if (not "ESP8266" in info.family) and (not mock_args.flag_factory):
-        try:
-            esptool.elf2image(mock_args)
-        except esptool.FatalError as err:
-            raise Esp_flasherError(f"Error while converting elf to bin: {err}") from err
 
-        mock_args = configure_write_flash_args(
-            info, chip, flag_factory, args.safeboot, firmware, flash_size, args.bootloader, args.partitions, args.otadata,
-            args.input, secure_pad, secure_pad_v2, min_rev, min_rev_full, max_rev_full, elf_sha256_offset,
-            use_segments, flash_mmu_page_size, pad_to_size, spi_connection, output
-        )
-
-    #print(f" - Flash Mode: {mock_args.flash_mode}")
-    #print(f" - Flash Frequency: {mock_args.flash_freq.upper()}Hz")
+    print(f" - Flash Mode: {mock_args.flash_mode}")
+    print(f" - Flash Frequency: {mock_args.flash_freq.upper()}Hz")
 
     try:
         stub_chip.flash_set_parameters(esptool.flash_size_bytes(flash_size))
     except esptool.FatalError as err:
         raise Esp_flasherError(f"Error setting flash parameters: {err}") from err
 
-    if not args.no_erase:
+    if args.erase:
         try:
             esptool.erase_flash(stub_chip, mock_args)
         except esptool.FatalError as err:

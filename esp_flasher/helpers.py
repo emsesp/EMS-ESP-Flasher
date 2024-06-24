@@ -20,7 +20,6 @@ def list_serial_ports():
             desc = split_desc[0]
         result.append((port, desc))
     result.sort()
-    # return[('COM1', 'USB Serial Port 1'),('COM2', 'USB Serial Port 2')]    # for testing EMS-ESP
     return result
 
 
@@ -32,7 +31,7 @@ def prevent_print(func, *args, **kwargs):
     except serial.SerialException as err:
         from esp_flasher.common import EspflasherError
 
-        raise EspflasherError("Serial Port closed: {}".format(err))
+        raise EspflasherError("Serial port closed: {}".format(err))
     finally:
         sys.stdout = orig_sys_stdout
         sys.stdout.isatty = lambda: False

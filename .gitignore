@@ -107,3 +107,4 @@ config/
 
 .DS_Store
 /.idea/
+EMS-ESP*.bin
