@@ -14,6 +14,8 @@ Based on [https://github.com/Jason2866/ESP_Flasher/](https://github.com/Jason286
 
 ## Building
 
+Make sure you have Python 3 installed. Preferably, use a virtual environment:
+
 - `python3 -m venv venv` to create the virtual environment
 - `source ./venv/bin/activate` to enter it
 
@@ -35,10 +37,7 @@ If windows blocks the .exe file, it's a false positive. See [here](<https://gith
 
 ### Windows
 
-1. Start up VM
-2. Install Python (3) from App Store
-3. Download esp-flasher from GitHub
-4. `pip install -e.` and `pip install pyinstaller`
-5. Check with `python -m esp_flasher.__main__`
-6. `python -m PyInstaller.__main__ -F -w -n ESP-Flasher -i icon.ico esp_flasher\__main__.py`
-7. Go to `dist` folder, check ESP-Flasher.exe works.
+1. `pip install -e.` and `pip install pyinstaller`
+2. Check with `python -m esp_flasher.__main__`
+3. `python -m PyInstaller.__main__ -F -w -n ESP-Flasher -i icon.ico esp_flasher\__main__.py`
+4. Go to `dist` folder, check ESP-Flasher.exe works.
