@@ -144,7 +144,7 @@ class MainWindow(QMainWindow):
             "border-radius: 5px; "
             "margin-top: 2ex; "
             "font-size: 14px;"
-            "color: lightblue;"
+            # "color: lightblue;"
         )
         console_layout = QVBoxLayout()
         self.console = QTextEdit()
