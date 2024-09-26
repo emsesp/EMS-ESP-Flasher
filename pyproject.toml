@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ESP-ESP-Flasher"
+version = "1.1.0"
+authors = [
+    {name = "Jason2866"},
+    {name = "Proddy"}
+]
+description = "EMS-ESP firmware flasher for the ESP32"
+
+requires-python = ">=3.8"
+
+license = {text = "MIT"}
+readme = "README.md"
+
+keywords = [
+    'home',
+    'automation'
+]
+
+dependencies = [
+    "pyserial",
+    "requests",
+    "PyQT6",
+    "distro",
+    "pyinstaller",
+    'importlib-metadata; python_version<"3.10"',
+]
+
+# [project.scripts]
+# emsesp_flasher = "emsesp_flasher.__main__:main"
+
+# [project.gui-scripts]
+# emsesp_flasher = "emsesp_flasher.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["esprelease.*"]
+
+# see https://pypi.org/project/autopep8/
+[tool.autopep8]
+max_line_length = 120
+# in-place = true
+# recursive = true
+# aggressive = 3
