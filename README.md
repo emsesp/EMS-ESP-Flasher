@@ -2,42 +2,77 @@
 
 Flash tool for uploading EMS-ESP firmware.
 
-Based on [https://github.com/Jason2866/ESP_Flasher/](https://github.com/Jason2866/ESP_Flasher/) version 3.0.0 with these modifications:
+Based on [https://github.com/Jason2866/ESP_Flasher/](https://github.com/Jason2866/ESP_Flasher/) version 3.0.3 with these modifications:
 
-- use EMS-ESP partitions in const.py
-- added option to keep settings by adding --no-erase option
-- removed ESP32_SAFEBOOT_SERVER
+- uses EMS-ESP specific partitions
+- added option to not erase flash and retain settings (--no-erase option)
+- removed the safeboot and factory firmware options
+- removed show logs option
+- update with EMS-ESP icons
+- updated to from PyQt5 to PyQt6 and made the UI a little nicer
+- auto CTRL-C to log into to EMS-ESP console
+- update setuptools - moved to a .toml file. See <https://setuptools.pypa.io/en/latest/userguide/>
+- note: GitHub Action build.yml uses `jason2866/upload-artifact@v2.0.3` instead of `actions/upload-artifact@v4` because of the multi-artifact feature (<https://github.com/actions/download-artifact/pull/202>)
 
-## License
+## Installation
 
-[MIT](http://opensource.org/licenses/MIT) © Marcel Stör, Otto Winter, Johann Obermeier
+If you plan to run Python in a virtual environment, first do this:
 
-## Building
+```sh
+python -m venv venv
+source ./venv/bin/activate`
+```
 
-Make sure you have Python 3 installed. Preferably, use a virtual environment:
+Then setup the environment with:
 
-- `python3 -m venv venv` to create the virtual environment
-- `source ./venv/bin/activate` to enter it
+```sh
+pip install --upgrade build
+pip install -e .
+```
 
-for installing first time:
-`pip3 install -e .` to install the libraries
+To build and test the a module for distribution (places in dist folder):
 
-for running:
-`python3 esp_flasher`
+```sh
+python -m build
+```
 
-## Virus warning on Windows
+```sh
+pip install --editable .
+```
 
-If windows blocks the .exe file, it's a false positive. See [here](<https://github.com/pyinstaller/pyinstaller/issues/3802>) and [here](<https://github.com/Jason2866/ESP_Flasher/issues/35>) for more information.
+To run as a module for testing locally:
 
-## Building the executables
+```sh
+python -m emsesp_flasher
+```
+
+To test the module build:
+
+## Building the platform executables
 
 ### macOS
 
-`pyinstaller -F -w -n ESP-Flasher -i icon.icns esp_flasher/__main__.py`
+```sh
+pyinstaller -F -w -n EMS-ESP-Flasher -i icon.icns emsesp_flasher/__main__.py
+```
+
+Will create a `dist/EMS-ESP-Flasher` file and `*.app` folder
 
 ### Windows
 
-1. `pip install -e.` and `pip install pyinstaller`
-2. Check with `python -m esp_flasher.__main__`
-3. `python -m PyInstaller.__main__ -F -w -n ESP-Flasher -i icon.ico esp_flasher\__main__.py`
-4. Go to `dist` folder, check ESP-Flasher.exe works.
+```sh
+python -m PyInstaller -F -w -n EMS-ESP-Flasher -i icon.ico emsesp_flasher\__main__.py
+```
+
+Will create a `dist/EMS-ESP-Flasher.exe` file.
+
+If the Windows firewall blocks the .exe file, it's a false positive. See [here](<https://github.com/pyinstaller/pyinstaller/issues/3802>).
+
+## Creating the installers in GitHub
+
+After a tagged release, the artifacts will be created. Tag using:
+
+```sh
+git tag -f v1.1.0 
+git push --tags -f
+```

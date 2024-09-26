@@ -1,12 +1,18 @@
-name: Build Workflow
+name: EMS-ESP Flasher
 
 on:
   workflow_dispatch:  # Manually start a workflow
   push:
+    tags:
+      - "v*.*.*"
     branches:
-    - main
+      - main
     paths-ignore:
-    - '.github/**' # Ignore changes towards the .github directory
+      - '.github/**' # Ignore changes towards the .github directory
+      - '*.md'
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build-windows:
@@ -15,7 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           architecture: 'x64'
@@ -25,54 +31,81 @@ jobs:
           pip install -e .
       - name: Run PyInstaller
         run: |
-          python -m PyInstaller.__main__ -F -w -n ESP-Flasher -i icon.ico esp_flasher\__main__.py
-      - uses: actions/upload-artifact@v4
+          python -m PyInstaller -F -w -n EMS-ESP-Flasher -i icon.ico emsesp_flasher\__main__.py
+      - name: Upload Artifact    
+        # uses: actions/upload-artifact@v4
+        uses: jason2866/upload-artifact@v2.0.3
         with:
           name: Windows
-          path: dist/ESP-Flasher.exe
+          path: dist/EMS-ESP-Flasher.exe
 
-  # build-ubuntu:
-  #   runs-on: ubuntu-22.04
-  #   steps:
-  #    - name: Checkout
-  #      uses: actions/checkout@v4
-  #    - name: Install Python
-  #      uses: actions/setup-python@v3
-  #      with:
-  #        python-version: '3.11'
-  #    - name: Install dependencies
-  #      run: |
-  #        sudo apt update
-  #        sudo apt install libgtk-3-dev libnotify-dev libsdl2-dev
-  #        pip install -U \
-  #         -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 \
-  #         wxPython
-  #    - name: Install requirements
-  #      run: |
-  #        pip install -r requirements.txt -r requirements_build.txt
-  #        pip install -e .
-  #    - name: Run PyInstaller
-  #      run: |
-  #        python -m PyInstaller.__main__ -F -w -n ESP-Flasher -i icon.ico esp_flasher/__main__.py
-  #    - name: See dist directory
-  #      run: ls dist
-  #    - name: 'Tar files'
-  #      run: gzip dist/ESP-Flasher
-  #    - name: 'show gzip'
-  #      run: ls dist
-  #    - uses: actions/upload-artifact@v4
-  #      with:
-  #        name: Ubuntu
-  #        path: dist/ESP-Flasher.gz
-
+  build-ubuntu:
+    runs-on: ubuntu-20.04
+    steps:
+     - name: Checkout
+       uses: actions/checkout@v4
+     - name: Install Python
+       uses: actions/setup-python@v5
+       with:
+         python-version: '3.9'
+     - name: Install dependencies
+       run: |
+         sudo apt update
+         sudo apt install libnotify-dev libsdl2-dev
+     - name: Install requirements
+       run: |
+         pip install -r requirements.txt -r requirements_build.txt
+         pip install -e .
+     - name: Run PyInstaller
+       run: |
+         python -m PyInstaller -F -w -n EMS-ESP-Flasher -i icon.ico emsesp_flasher/__main__.py
+     - name: Move app
+       run: |
+         mv dist/EMS-ESP-Flasher EMS-ESP-Flasher
+     - name: 'Tar files'
+       run: tar -cvf Ubuntu.tar EMS-ESP-Flasher
+     - name: Upload Artifact    
+      #  uses: actions/upload-artifact@v4
+       uses: jason2866/upload-artifact@v2.0.3
+       with:
+         name: Ubuntu
+         path: Ubuntu.tar
 
   build-macos:
-    runs-on: macOS-13
+    runs-on: macos-13
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install requirements
+        run: |
+          pip install -r requirements.txt -r requirements_build.txt
+          pip install -e .
+      - name: Run PyInstaller
+        run: |
+          python -m PyInstaller -F -w -n EMS-ESP-Flasher -i icon.icns emsesp_flasher/__main__.py
+      - name: Move app
+        run: |
+          mv dist/EMS-ESP-Flasher.app EMS-ESP-Flasher-macOS.app
+      - name: 'Tar files'
+        run: tar -cvf macOS.tar EMS-ESP-Flasher-macOS.app
+      - name: 'Upload Artifact'
+        # uses: actions/upload-artifact@v4
+        uses: jason2866/upload-artifact@v2.0.3
+        with:
+          name: macOS
+          path: macOS.tar
+
+  build-macos-arm:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install requirements
@@ -81,16 +114,49 @@ jobs:
           pip install -e .
       - name: Run PyInstaller
         run: |
-          python -m PyInstaller.__main__ -F -w -n ESP-Flasher -i icon.icns esp_flasher/__main__.py
-      - name: See dist directory
-        run: ls dist
+          python -m PyInstaller -F -w -n EMS-ESP-Flasher -i icon.icns emsesp_flasher/__main__.py
       - name: Move app
         run: |
-          mv dist/ESP-Flasher.app dist/ESP-Flasher-dev-macOS.app
+          mv dist/EMS-ESP-Flasher.app EMS-ESP-Flasher-macOSarm.app
       - name: 'Tar files'
-        run: tar -cvf dist.tar dist/*
+        run: tar -cvf macOSarm.tar EMS-ESP-Flasher-macOSarm.app
       - name: 'Upload Artifact'
-        uses: actions/upload-artifact@v4
+        # uses: actions/upload-artifact@v4
+        uses: jason2866/upload-artifact@v2.0.3
         with:
-          name: macOS
-          path: dist.tar
+          name: macOSarm
+          path: macOSarm.tar
+
+  release:
+      name: Upload binaries to release section
+      needs: [build-windows, build-ubuntu, build-macos, build-macos-arm]
+      if: startsWith(github.ref, 'refs/tags/')
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+        - name: Download built binaries artifacts
+          # uses: actions/download-artifact@v4
+          uses: jason2866/download-artifact@v3.0.4
+          with:
+            name: |
+              Windows
+              Ubuntu
+              macOS
+              macOSarm
+            path: |
+              binary
+              binary
+              binary
+              binary
+        - name: Display downloaded artifact files
+          run: |
+            ls -R ./
+        - name: Release
+          uses: softprops/action-gh-release@v2
+          with:
+            prerelease: false
+            files: |
+              binary/*
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
