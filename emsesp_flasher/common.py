@@ -281,10 +281,11 @@ def configure_write_flash_args(
             )
 
         # check for EMS-ESP loader and asym
-        if firmware_size < 0x140000 and flash_size == "4MB":
-            model = "loader"
-        elif firmware_size >= 0x1F0000 and flash_size == "4MB":
-            model = "asym"
+        # commented out for now - will be added later
+        # if firmware_size < 0x140000 and flash_size == "4MB":
+        #     model = "loader"
+        # elif firmware_size >= 0x1F0000 and flash_size == "4MB":
+        #     model = "asym"
 
         chip = model
         min_rev = 0
