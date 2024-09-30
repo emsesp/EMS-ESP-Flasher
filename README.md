@@ -6,7 +6,7 @@ Based on [https://github.com/Jason2866/ESP_Flasher/](https://github.com/Jason286
 
 - uses EMS-ESP specific partitions
 - added option to not erase flash and retain settings (--no-erase option)
-- removed the safeboot and factory firmware options
+- removed the safeboot and factory firmware options, we'll add the loader later
 - removed show logs option
 - update with EMS-ESP icons
 - updated to from PyQt5 to PyQt6 and made the UI a little nicer
@@ -16,21 +16,21 @@ Based on [https://github.com/Jason2866/ESP_Flasher/](https://github.com/Jason286
 
 ## Installation
 
-If you plan to run Python in a virtual environment, first do this:
+If you plan to run Python in a virtual environment, either let VSC do this for you, or manually like:
 
 ```sh
 python -m venv venv
 source ./venv/bin/activate`
 ```
 
-Then setup the environment with:
+Install the library's:
 
 ```sh
 pip install --upgrade build
 pip install -e .
 ```
 
-To build and test the a module for distribution (places in dist folder):
+To build and test the a module for distribution (places in `dist` folder):
 
 ```sh
 python -m build
@@ -40,7 +40,7 @@ python -m build
 pip install --editable .
 ```
 
-To run as a module for testing locally:
+To run as a module, when building and testing locally:
 
 ```sh
 python -m emsesp_flasher
@@ -64,13 +64,13 @@ Will create a `dist/EMS-ESP-Flasher` file and `*.app` folder
 python -m PyInstaller -F -w -n EMS-ESP-Flasher -i icon.ico emsesp_flasher\__main__.py
 ```
 
-Will create a `dist/EMS-ESP-Flasher.exe` file.
+This will create the `dist/EMS-ESP-Flasher.exe` file.
 
-If the Windows firewall blocks the .exe file, it's a false positive. See [here](<https://github.com/pyinstaller/pyinstaller/issues/3802>).
+If the Windows firewall blocks the .exe file, it's a false positive and you can accept/keep. See [here](<https://github.com/pyinstaller/pyinstaller/issues/3802>).
 
 ## Creating the installers in GitHub
 
-After a tagged release, the artifacts will be created. Tag using:
+The binary artifacts will only be created on a tag. Use:
 
 ```sh
 git tag -f v1.1.0 
