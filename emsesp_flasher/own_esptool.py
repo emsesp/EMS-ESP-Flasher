@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 from __future__ import division, print_function
+from typing import Dict
 
 import argparse
 import base64
@@ -251,24 +252,24 @@ class ESPLoader(object):
 
     # Commands supported by ESP8266 ROM bootloader
     ESP_FLASH_BEGIN = 0x02
-    ESP_FLASH_DATA  = 0x03
-    ESP_FLASH_END   = 0x04
-    ESP_MEM_BEGIN   = 0x05
-    ESP_MEM_END     = 0x06
-    ESP_MEM_DATA    = 0x07
-    ESP_SYNC        = 0x08
-    ESP_WRITE_REG   = 0x09
-    ESP_READ_REG    = 0x0a
+    ESP_FLASH_DATA = 0x03
+    ESP_FLASH_END = 0x04
+    ESP_MEM_BEGIN = 0x05
+    ESP_MEM_END = 0x06
+    ESP_MEM_DATA = 0x07
+    ESP_SYNC = 0x08
+    ESP_WRITE_REG = 0x09
+    ESP_READ_REG = 0x0a
 
     # Some comands supported by ESP32 and later chips ROM bootloader (or -8266 w/ stub)
     ESP_SPI_SET_PARAMS = 0x0B
-    ESP_SPI_ATTACH     = 0x0D
-    ESP_READ_FLASH_SLOW  = 0x0e  # ROM only, much slower than the stub flash read
+    ESP_SPI_ATTACH = 0x0D
+    ESP_READ_FLASH_SLOW = 0x0e  # ROM only, much slower than the stub flash read
     ESP_CHANGE_BAUDRATE = 0x0F
     ESP_FLASH_DEFL_BEGIN = 0x10
-    ESP_FLASH_DEFL_DATA  = 0x11
-    ESP_FLASH_DEFL_END   = 0x12
-    ESP_SPI_FLASH_MD5    = 0x13
+    ESP_FLASH_DEFL_DATA = 0x11
+    ESP_FLASH_DEFL_END = 0x12
+    ESP_SPI_FLASH_MD5 = 0x13
 
     # Commands supported by ESP32-S2 and later chips ROM bootloader only
     ESP_GET_SECURITY_INFO = 0x14
@@ -286,12 +287,12 @@ class ESPLoader(object):
     ROM_INVALID_RECV_MSG = 0x05   # response if an invalid message is received
 
     # Maximum block sized for RAM and Flash writes, respectively.
-    ESP_RAM_BLOCK   = 0x1800
+    ESP_RAM_BLOCK = 0x1800
 
     FLASH_WRITE_SIZE = 0x400
 
     # Default baudrate. The ROM auto-bauds, so we can use more or less whatever we want.
-    ESP_ROM_BAUD    = 115200
+    ESP_ROM_BAUD = 115200
 
     # First byte of the application image
     ESP_IMAGE_MAGIC = 0xe9
@@ -411,10 +412,12 @@ class ESPLoader(object):
         raise FatalError("Unexpected CHIP magic value 0x%08x. Failed to autodetect chip type." % (chip_magic_value))
 
     """ Read a SLIP packet from the serial port """
+
     def read(self):
         return next(self._slip_reader)
 
     """ Write bytes to the serial port while performing SLIP escaping """
+
     def write(self, packet):
         buf = b'\xc0' \
               + (packet.replace(b'\xdb', b'\xdb\xdd').replace(b'\xc0', b'\xdb\xdc')) \
@@ -446,6 +449,7 @@ class ESPLoader(object):
         return state
 
     """ Send a request and read the response """
+
     def command(self, op=None, data=b"", chk=0, wait_response=True, timeout=DEFAULT_TIMEOUT):
         saved_timeout = self._port.timeout
         new_timeout = min(timeout, MAX_TIMEOUT)
@@ -588,7 +592,8 @@ class ESPLoader(object):
             self._setRTS(False)
         else:
             # This fpga delay is for Espressif internal use
-            fpga_delay = True if self.FPGA_SLOW_BOOT and os.environ.get("ESPTOOL_ENV_FPGA", "").strip() == "1" else False
+            fpga_delay = True if self.FPGA_SLOW_BOOT and os.environ.get(
+                "ESPTOOL_ENV_FPGA", "").strip() == "1" else False
             delay = 7 if fpga_delay else 0.5 if extra_delay else 0.05  # 0.5 needed for ESP32 rev0 and rev1
 
             self._setDTR(False)  # IO0=HIGH
@@ -637,9 +642,11 @@ class ESPLoader(object):
                 last_error = e
 
         if boot_log_detected:
-            last_error = FatalError("Wrong boot mode detected ({})! The chip needs to be in download mode.".format(boot_mode.decode("utf-8")))
+            last_error = FatalError(
+                "Wrong boot mode detected ({})! The chip needs to be in download mode.".format(boot_mode.decode("utf-8")))
             if download_mode:
-                last_error = FatalError("Download mode successfully detected, but getting no sync reply: The serial TX path seems to be down.")
+                last_error = FatalError(
+                    "Download mode successfully detected, but getting no sync reply: The serial TX path seems to be down.")
         return last_error
 
     def get_memory_region(self, name):
@@ -689,7 +696,8 @@ class ESPLoader(object):
                         print(("WARNING: This chip doesn't appear to be a %s (chip magic value 0x%08x). "
                                "Probably it is unsupported by this version of esptool.") % (self.CHIP_NAME, chip_magic_value))
                     else:
-                        raise FatalError("This chip is %s not %s. Wrong --chip argument?" % (actually.CHIP_NAME, self.CHIP_NAME))
+                        raise FatalError("This chip is %s not %s. Wrong --chip argument?" %
+                                         (actually.CHIP_NAME, self.CHIP_NAME))
             except UnsupportedCommandError:
                 self.secure_download_mode = True
             self._post_connect()
@@ -713,6 +721,7 @@ class ESPLoader(object):
         return val
 
     """ Write to memory address in target """
+
     def write_reg(self, addr, value, mask=0xFFFFFFFF, delay_us=0, delay_after_us=0):
         command = struct.pack('<IIII', addr, value, mask, delay_us)
         if delay_after_us > 0:
@@ -736,6 +745,7 @@ class ESPLoader(object):
         return val
 
     """ Start downloading an application image to RAM """
+
     def mem_begin(self, size, blocks, blocksize, offset):
         if self.IS_STUB:  # check we're not going to overwrite a running stub with this data
             stub = self.STUB_CODE
@@ -753,12 +763,14 @@ class ESPLoader(object):
                                   struct.pack('<IIII', size, blocks, blocksize, offset))
 
     """ Send a block of an image to RAM """
+
     def mem_block(self, data, seq):
         return self.check_command("write to target RAM", self.ESP_MEM_DATA,
                                   struct.pack('<IIII', len(data), seq, 0, 0) + data,
                                   self.checksum(data))
 
     """ Leave download mode and run the application """
+
     def mem_finish(self, entrypoint=0):
         # Sending ESP_MEM_END usually sends a correct response back, however sometimes
         # (with ROM loader) the executed code may reset the UART or change the baud rate
@@ -778,6 +790,7 @@ class ESPLoader(object):
 
     Returns number of blocks (of size self.FLASH_WRITE_SIZE) to write.
     """
+
     def flash_begin(self, size, offset, begin_rom_encrypted=False):
         num_blocks = (size + self.FLASH_WRITE_SIZE - 1) // self.FLASH_WRITE_SIZE
         erase_size = self.get_erase_size(offset, size)
@@ -846,18 +859,21 @@ class ESPLoader(object):
                     raise
 
     """ Leave flash mode and run/reboot """
+
     def flash_finish(self, reboot=False):
         pkt = struct.pack('<I', int(not reboot))
         # stub sends a reply to this command
         self.check_command("leave Flash mode", self.ESP_FLASH_END, pkt)
 
     """ Run application code in flash """
+
     def run(self, reboot=False):
         # Fake flash begin immediately followed by flash end
         self.flash_begin(0, 0)
         self.flash_finish(reboot)
 
     """ Read SPI flash manufacturer and device id """
+
     def flash_id(self):
         SPIFLASH_RDID = 0x9F
         return self.run_spiflash_command(SPIFLASH_RDID, b"", 24)
@@ -946,7 +962,8 @@ class ESPLoader(object):
         params = struct.pack('<IIII', write_size, num_blocks, self.FLASH_WRITE_SIZE, offset)
         if isinstance(self, (ESP32S2ROM, ESP32S3ROM, ESP32C3ROM,
                              ESP32C6ROM, ESP32H2ROM, ESP32C2ROM)) and not self.IS_STUB:
-            params += struct.pack('<I', 0)  # extra param is to enter encrypted flash mode via ROM (not supported currently)
+            # extra param is to enter encrypted flash mode via ROM (not supported currently)
+            params += struct.pack('<I', 0)
         self.check_command("enter compressed flash mode", self.ESP_FLASH_DEFL_BEGIN, params, timeout=timeout)
         if size != 0 and not self.IS_STUB:
             # (stub erases as it writes, but ROM loaders erase on begin)
@@ -1047,7 +1064,8 @@ class ESPLoader(object):
             p = self.read()
             data += p
             if len(data) < length and len(p) < self.FLASH_SECTOR_SIZE:
-                raise FatalError('Corrupt data, expected 0x%x bytes but received 0x%x bytes' % (self.FLASH_SECTOR_SIZE, len(p)))
+                raise FatalError('Corrupt data, expected 0x%x bytes but received 0x%x bytes' %
+                                 (self.FLASH_SECTOR_SIZE, len(p)))
             self.write(struct.pack('<I', len(data)))
             if progress_fn and (len(data) % 1024 == 0 or len(data) == length):
                 progress_fn(len(data), length)
@@ -1114,19 +1132,19 @@ class ESPLoader(object):
 
         # SPI_USR register flags
         SPI_USR_COMMAND = (1 << 31)
-        SPI_USR_ADDR    = (1 << 30)
-        SPI_USR_DUMMY   = (1 << 29)
-        SPI_USR_MISO    = (1 << 28)
-        SPI_USR_MOSI    = (1 << 27)
+        SPI_USR_ADDR = (1 << 30)
+        SPI_USR_DUMMY = (1 << 29)
+        SPI_USR_MISO = (1 << 28)
+        SPI_USR_MOSI = (1 << 27)
 
         # SPI registers, base address differs ESP32* vs 8266
         base = self.SPI_REG_BASE
-        SPI_CMD_REG       = base + 0x00
-        SPI_ADDR_REG      = base + 0x04
-        SPI_USR_REG       = base + self.SPI_USR_OFFS
-        SPI_USR1_REG      = base + self.SPI_USR1_OFFS
-        SPI_USR2_REG      = base + self.SPI_USR2_OFFS
-        SPI_W0_REG        = base + self.SPI_W0_OFFS
+        SPI_CMD_REG = base + 0x00
+        SPI_ADDR_REG = base + 0x04
+        SPI_USR_REG = base + self.SPI_USR_OFFS
+        SPI_USR1_REG = base + self.SPI_USR1_OFFS
+        SPI_USR2_REG = base + self.SPI_USR2_OFFS
+        SPI_W0_REG = base + self.SPI_W0_OFFS
 
         # following two registers are ESP32 and later chips only
         if self.SPI_MOSI_DLEN_OFFS is not None:
@@ -1160,7 +1178,7 @@ class ESPLoader(object):
                 self.write_reg(SPI_DATA_LEN_REG, flags)
 
         # SPI peripheral "command" bitmasks for SPI_CMD_REG
-        SPI_CMD_USR  = (1 << 18)
+        SPI_CMD_USR = (1 << 18)
 
         # shift values
         SPI_USR2_COMMAND_LEN_SHIFT = 28
@@ -1224,7 +1242,7 @@ class ESPLoader(object):
         Not all SPI flash supports all three commands. The upper 1 or 2
         bytes may be 0xFF.
         """
-        SPIFLASH_RDSR  = 0x05
+        SPIFLASH_RDSR = 0x05
         SPIFLASH_RDSR2 = 0x35
         SPIFLASH_RDSR3 = 0x15
 
@@ -1285,7 +1303,8 @@ class ESPLoader(object):
         est_xtal = (self._port.baudrate * uart_div) / 1e6 / self.XTAL_CLK_DIVIDER
         norm_xtal = 40 if est_xtal > 33 else 26
         if abs(norm_xtal - est_xtal) > 1:
-            print("WARNING: Detected crystal freq %.2fMHz is quite different to normalized freq %dMHz. Unsupported crystal in use?" % (est_xtal, norm_xtal))
+            print("WARNING: Detected crystal freq %.2fMHz is quite different to normalized freq %dMHz. Unsupported crystal in use?" % (
+                est_xtal, norm_xtal))
         return norm_xtal
 
     def hard_reset(self):
@@ -1336,17 +1355,17 @@ class ESP8266ROM(ESPLoader):
     CHIP_DETECT_MAGIC_VALUE = [0xfff0c101]
 
     # OTP ROM addresses
-    ESP_OTP_MAC0    = 0x3ff00050
-    ESP_OTP_MAC1    = 0x3ff00054
-    ESP_OTP_MAC3    = 0x3ff0005c
+    ESP_OTP_MAC0 = 0x3ff00050
+    ESP_OTP_MAC1 = 0x3ff00054
+    ESP_OTP_MAC3 = 0x3ff0005c
 
-    SPI_REG_BASE    = 0x60000200
-    SPI_USR_OFFS    = 0x1c
-    SPI_USR1_OFFS   = 0x20
-    SPI_USR2_OFFS   = 0x24
+    SPI_REG_BASE = 0x60000200
+    SPI_USR_OFFS = 0x1c
+    SPI_USR1_OFFS = 0x20
+    SPI_USR2_OFFS = 0x24
     SPI_MOSI_DLEN_OFFS = None
     SPI_MISO_DLEN_OFFS = None
-    SPI_W0_OFFS     = 0x40
+    SPI_W0_OFFS = 0x40
 
     UART_CLKDIV_REG = 0x60000014
 
@@ -1513,18 +1532,18 @@ class ESP32ROM(ESPLoader):
     CHIP_DETECT_MAGIC_VALUE = [0x00f01d83]
 
     IROM_MAP_START = 0x400d0000
-    IROM_MAP_END   = 0x40400000
+    IROM_MAP_END = 0x40400000
 
     DROM_MAP_START = 0x3F400000
-    DROM_MAP_END   = 0x3F800000
+    DROM_MAP_END = 0x3F800000
 
     # ESP32 uses a 4 byte status reply
     STATUS_BYTES_LENGTH = 4
 
-    SPI_REG_BASE   = 0x3ff42000
-    SPI_USR_OFFS    = 0x1c
-    SPI_USR1_OFFS   = 0x20
-    SPI_USR2_OFFS   = 0x24
+    SPI_REG_BASE = 0x3ff42000
+    SPI_USR_OFFS = 0x1c
+    SPI_USR1_OFFS = 0x20
+    SPI_USR2_OFFS = 0x24
     SPI_MOSI_DLEN_OFFS = 0x28
     SPI_MISO_DLEN_OFFS = 0x2c
     EFUSE_RD_REG_BASE = 0x3ff5a000
@@ -1586,7 +1605,6 @@ class ESP32ROM(ESPLoader):
     """ Try to read the BLOCK1 (encryption key) and check if it is valid """
 
     def is_flash_encryption_key_valid(self):
-
         """ Bit 0 of efuse_rd_disable[3:0] is mapped to BLOCK1
         this bit is at position 16 in EFUSE_BLK0_RDATA0_REG """
         word0 = self.read_efuse(0)
@@ -1796,7 +1814,8 @@ class ESP32ROM(ESPLoader):
                                    struct.pack('<II', offset + len(data), block_len))
             if len(r) < block_len:
                 raise FatalError("Expected %d byte block, got %d bytes. Serial errors?" % (block_len, len(r)))
-            data += r[:block_len]  # command always returns 64 byte buffer, regardless of how many bytes were actually read from flash
+            # command always returns 64 byte buffer, regardless of how many bytes were actually read from flash
+            data += r[:block_len]
             if progress_fn and (len(data) % 1024 == 0 or len(data) == length):
                 progress_fn(len(data), length)
         return data
@@ -1870,9 +1889,15 @@ class ESP32S2ROM(ESP32ROM):
     USB_RAM_BLOCK = 0x800  # Max block size USB-OTG is used
 
     GPIO_STRAP_REG = 0x3F404038
-    GPIO_STRAP_SPI_BOOT_MASK = 0x8  # Not download mode
+    GPIO_STRAP_SPI_BOOT_MASK = 1 << 3  # Not download mode
     RTC_CNTL_OPTION1_REG = 0x3F408128
     RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK = 0x1  # Is download mode forced over USB?
+
+    RTCCNTL_BASE_REG = 0x3F408000
+    RTC_CNTL_WDTCONFIG0_REG = RTCCNTL_BASE_REG + 0x0094
+    RTC_CNTL_WDTCONFIG1_REG = RTCCNTL_BASE_REG + 0x0098
+    RTC_CNTL_WDTWPROTECT_REG = RTCCNTL_BASE_REG + 0x00AC
+    RTC_CNTL_WDT_WKEY = 0x50D83AA1
 
     MEMORY_MAP = [
         [0x00000000, 0x00010000, "PADDING"],
@@ -2045,34 +2070,26 @@ class ESP32S2ROM(ESP32ROM):
         if self.uses_usb():
             self.ESP_RAM_BLOCK = self.USB_RAM_BLOCK
 
-    def _check_if_can_reset(self):
-        """
-        Check the strapping register to see if we can reset out of download mode.
-        """
-        if os.getenv("ESPTOOL_TESTING") is not None:
-            print("ESPTOOL_TESTING is set, ignoring strapping mode check")
-            # Esptool tests over USB-OTG run with GPIO0 strapped low,
-            # don't complain in this case.
-            return
-        strap_reg = self.read_reg(self.GPIO_STRAP_REG)
-        force_dl_reg = self.read_reg(self.RTC_CNTL_OPTION1_REG)
-        if (
-            strap_reg & self.GPIO_STRAP_SPI_BOOT_MASK == 0
-            and force_dl_reg & self.RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK == 0
-        ):
-            print(
-                "WARNING: {} chip was placed into download mode using GPIO0.\n"
-                "esptool.py can not exit the download mode over USB. "
-                "To run the app, reset the chip manually.\n"
-                "To suppress this note, set --after option to 'no_reset'.".format(
-                    self.get_chip_description()
-                )
-            )
-            raise SystemExit(1)
+    def rtc_wdt_reset(self):
+        print("Hard resetting with RTC WDT...")
+        self.write_reg(self.RTC_CNTL_WDTWPROTECT_REG, self.RTC_CNTL_WDT_WKEY)  # unlock
+        self.write_reg(self.RTC_CNTL_WDTCONFIG1_REG, 5000)  # set WDT timeout
+        self.write_reg(
+            self.RTC_CNTL_WDTCONFIG0_REG, (1 << 31) | (5 << 28) | (1 << 8) | 2
+        )  # enable WDT
+        self.write_reg(self.RTC_CNTL_WDTWPROTECT_REG, 0)  # lock
 
     def hard_reset(self):
         if self.uses_usb():
-            self._check_if_can_reset()
+            # Check the strapping register to see if we can perform RTC WDT reset
+            strap_reg = self.read_reg(self.GPIO_STRAP_REG)
+            force_dl_reg = self.read_reg(self.RTC_CNTL_OPTION1_REG)
+            if (
+                strap_reg & self.GPIO_STRAP_SPI_BOOT_MASK == 0  # GPIO0 low
+                and force_dl_reg & self.RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK == 0
+            ):
+                self.rtc_wdt_reset()
+                return
 
         print('Hard resetting via RTS pin...')
         self._setRTS(True)  # EN->LOW
@@ -2093,32 +2110,37 @@ class ESP32S3ROM(ESP32ROM):
 
     CHIP_DETECT_MAGIC_VALUE = [0x9]
 
-    BOOTLOADER_FLASH_OFFSET = 0x0
-
     FPGA_SLOW_BOOT = False
 
     IROM_MAP_START = 0x42000000
-    IROM_MAP_END   = 0x44000000
-    DROM_MAP_START = 0x3c000000
-    DROM_MAP_END   = 0x3e000000
+    IROM_MAP_END = 0x44000000
+    DROM_MAP_START = 0x3C000000
+    DROM_MAP_END = 0x3E000000
 
     UART_DATE_REG_ADDR = 0x60000080
 
     SPI_REG_BASE = 0x60002000
-    SPI_USR_OFFS    = 0x18
-    SPI_USR1_OFFS   = 0x1c
-    SPI_USR2_OFFS   = 0x20
+    SPI_USR_OFFS = 0x18
+    SPI_USR1_OFFS = 0x1C
+    SPI_USR2_OFFS = 0x20
     SPI_MOSI_DLEN_OFFS = 0x24
     SPI_MISO_DLEN_OFFS = 0x28
     SPI_W0_OFFS = 0x58
+
+    SPI_ADDR_REG_MSB = False
+
+    BOOTLOADER_FLASH_OFFSET = 0x0
+
+    SUPPORTS_ENCRYPTED_FLASH = True
 
     FLASH_ENCRYPTED_WRITE_ALIGN = 16
 
     # todo: use espefuse APIs to get this info
     EFUSE_BASE = 0x60007000  # BLOCK0 read base address
-    MAC_EFUSE_REG = EFUSE_BASE + 0x044
     EFUSE_BLOCK1_ADDR = EFUSE_BASE + 0x44
     EFUSE_BLOCK2_ADDR = EFUSE_BASE + 0x5C
+    MAC_EFUSE_REG = EFUSE_BASE + 0x044
+
     EFUSE_RD_REG_BASE = EFUSE_BASE + 0x030  # BLOCK0 read base address
 
     EFUSE_PURPOSE_KEY0_REG = EFUSE_BASE + 0x34
@@ -2137,17 +2159,38 @@ class ESP32S3ROM(ESP32ROM):
     EFUSE_DIS_DOWNLOAD_MANUAL_ENCRYPT_REG = EFUSE_RD_REG_BASE
     EFUSE_DIS_DOWNLOAD_MANUAL_ENCRYPT = 1 << 20
 
+    EFUSE_SPI_BOOT_CRYPT_CNT_REG = EFUSE_BASE + 0x034
+    EFUSE_SPI_BOOT_CRYPT_CNT_MASK = 0x7 << 18
+
+    EFUSE_SECURE_BOOT_EN_REG = EFUSE_BASE + 0x038
+    EFUSE_SECURE_BOOT_EN_MASK = 1 << 20
+
+    EFUSE_RD_REPEAT_DATA3_REG = EFUSE_BASE + 0x3C
+    EFUSE_RD_REPEAT_DATA3_REG_FLASH_TYPE_MASK = 1 << 9
+
     PURPOSE_VAL_XTS_AES256_KEY_1 = 2
     PURPOSE_VAL_XTS_AES256_KEY_2 = 3
     PURPOSE_VAL_XTS_AES128_KEY = 4
 
-    UARTDEV_BUF_NO = 0x3fcef14c  # Variable in ROM .bss which indicates the port in use
-    UARTDEV_BUF_NO_USB = 3  # Value of the above variable indicating that USB is in use
+    UARTDEV_BUF_NO = 0x3FCEF14C  # Variable in ROM .bss which indicates the port in use
+    UARTDEV_BUF_NO_USB = 3  # The above var when USB-OTG is used
+    UARTDEV_BUF_NO_USB_JTAG_SERIAL = 4  # The above var when USB-JTAG/Serial is used
 
-    USB_RAM_BLOCK = 0x800  # Max block size USB CDC is used
+    RTCCNTL_BASE_REG = 0x60008000
+    RTC_CNTL_SWD_CONF_REG = RTCCNTL_BASE_REG + 0x00B4
+    RTC_CNTL_SWD_AUTO_FEED_EN = 1 << 31
+    RTC_CNTL_SWD_WPROTECT_REG = RTCCNTL_BASE_REG + 0x00B8
+    RTC_CNTL_SWD_WKEY = 0x8F1D312A
+
+    RTC_CNTL_WDTCONFIG0_REG = RTCCNTL_BASE_REG + 0x0098
+    RTC_CNTL_WDTCONFIG1_REG = RTCCNTL_BASE_REG + 0x009C
+    RTC_CNTL_WDTWPROTECT_REG = RTCCNTL_BASE_REG + 0x00B0
+    RTC_CNTL_WDT_WKEY = 0x50D83AA1
+
+    USB_RAM_BLOCK = 0x800  # Max block size USB-OTG is used
 
     GPIO_STRAP_REG = 0x60004038
-    GPIO_STRAP_SPI_BOOT_MASK = 0x8   # Not download mode
+    GPIO_STRAP_SPI_BOOT_MASK = 1 << 3  # Not download mode
     RTC_CNTL_OPTION1_REG = 0x6000812C
     RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK = 0x1  # Is download mode forced over USB?
 
@@ -2270,33 +2313,51 @@ class ESP32S3ROM(ESP32ROM):
             _cache.append(buf_no == self.UARTDEV_BUF_NO_USB)
         return _cache[0]
 
+    def uses_usb_jtag_serial(self, _cache=[]):
+        """
+        Check the UARTDEV_BUF_NO register to see if USB-JTAG/Serial is being used
+        """
+        if self.secure_download_mode:
+            return False  # can't detect USB-JTAG/Serial in secure download mode
+        if not _cache:
+            buf_no = self.read_reg(self.UARTDEV_BUF_NO) & 0xff
+            _cache.append(buf_no == self.UARTDEV_BUF_NO_USB_JTAG_SERIAL)
+        return _cache[0]
+
     def _post_connect(self):
         if self.uses_usb():
             self.ESP_RAM_BLOCK = self.USB_RAM_BLOCK
 
-    def _check_if_can_reset(self):
-        """
-        Check the strapping register to see if we can reset out of download mode.
-        """
-        if os.getenv("ESPTOOL_TESTING") is not None:
-            print("ESPTOOL_TESTING is set, ignoring strapping mode check")
-            # Esptool tests over USB CDC run with GPIO0 strapped low, don't complain in this case.
-            return
-        strap_reg = self.read_reg(self.GPIO_STRAP_REG)
-        force_dl_reg = self.read_reg(self.RTC_CNTL_OPTION1_REG)
-        if strap_reg & self.GPIO_STRAP_SPI_BOOT_MASK == 0 and force_dl_reg & self.RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK == 0:
-            print("WARNING: {} chip was placed into download mode using GPIO0.\n"
-                  "esptool.py can not exit the download mode over USB. "
-                  "To run the app, reset the chip manually.\n"
-                  "To suppress this note, set --after option to 'no_reset'.".format(self.get_chip_description()))
-            raise SystemExit(1)
+    def rtc_wdt_reset(self):
+        print("Hard resetting with RTC WDT...")
+        self.write_reg(self.RTC_CNTL_WDTWPROTECT_REG, self.RTC_CNTL_WDT_WKEY)  # unlock
+        self.write_reg(self.RTC_CNTL_WDTCONFIG1_REG, 5000)  # set WDT timeout
+        self.write_reg(
+            self.RTC_CNTL_WDTCONFIG0_REG, (1 << 31) | (5 << 28) | (1 << 8) | 2
+        )  # enable WDT
+        self.write_reg(self.RTC_CNTL_WDTWPROTECT_REG, 0)  # lock
 
     def hard_reset(self):
-        if self.uses_usb():
-            self._check_if_can_reset()
-        # issue https://github.com/espressif/arduino-esp32/issues/6762#issuecomment-1829942230
-        # Clear "Force Download Boot" flag, otherwise we keep resetting to boot mode
-        self.write_reg(self.RTC_CNTL_OPTION1_REG, 0, self.RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK)
+        try:
+            # Clear force download boot mode to avoid the chip being stuck in download mode after reset
+            # workaround for issue: https://github.com/espressif/arduino-esp32/issues/6762
+            self.write_reg(
+                self.RTC_CNTL_OPTION1_REG, 0, self.RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK
+            )
+        except Exception:
+            # Skip if response was not valid and proceed to reset; e.g. when monitoring while resetting
+            pass
+        uses_usb_otg = self.uses_usb()
+        if uses_usb_otg or self.uses_usb_jtag_serial():
+            # Check the strapping register to see if we can perform RTC WDT reset
+            strap_reg = self.read_reg(self.GPIO_STRAP_REG)
+            force_dl_reg = self.read_reg(self.RTC_CNTL_OPTION1_REG)
+            if (
+                strap_reg & self.GPIO_STRAP_SPI_BOOT_MASK == 0  # GPIO0 low
+                and force_dl_reg & self.RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK == 0
+            ):
+                self.rtc_wdt_reset()
+                return
 
         print('Hard resetting via RTS pin...')
         self._setRTS(True)  # EN->LOW
@@ -2317,28 +2378,32 @@ class ESP32C3ROM(ESP32ROM):
     FPGA_SLOW_BOOT = False
 
     IROM_MAP_START = 0x42000000
-    IROM_MAP_END   = 0x42800000
-    DROM_MAP_START = 0x3c000000
-    DROM_MAP_END   = 0x3c800000
+    IROM_MAP_END = 0x42800000
+    DROM_MAP_START = 0x3C000000
+    DROM_MAP_END = 0x3C800000
 
     SPI_REG_BASE = 0x60002000
-    SPI_USR_OFFS    = 0x18
-    SPI_USR1_OFFS   = 0x1C
-    SPI_USR2_OFFS   = 0x20
+    SPI_USR_OFFS = 0x18
+    SPI_USR1_OFFS = 0x1C
+    SPI_USR2_OFFS = 0x20
     SPI_MOSI_DLEN_OFFS = 0x24
     SPI_MISO_DLEN_OFFS = 0x28
     SPI_W0_OFFS = 0x58
 
+    SPI_ADDR_REG_MSB = False
+
     BOOTLOADER_FLASH_OFFSET = 0x0
 
     # Magic values for ESP32-C3 eco 1+2, eco 3, eco 6, and eco 7 respectively
-    CHIP_DETECT_MAGIC_VALUE = [0x6921506f, 0x1b31506f, 0x4881606f, 0x4361606f]
+    CHIP_DETECT_MAGIC_VALUE = [0x6921506F, 0x1B31506F, 0x4881606F, 0x4361606F]
 
-    UART_DATE_REG_ADDR = 0x60000000 + 0x7c
+    UART_DATE_REG_ADDR = 0x60000000 + 0x7C
+
+    UART_CLKDIV_REG = 0x60000014
 
     EFUSE_BASE = 0x60008800
     EFUSE_BLOCK1_ADDR = EFUSE_BASE + 0x044
-    MAC_EFUSE_REG  = EFUSE_BASE + 0x044
+    MAC_EFUSE_REG = EFUSE_BASE + 0x044
 
     EFUSE_RD_REG_BASE = EFUSE_BASE + 0x030  # BLOCK0 read base address
 
@@ -2358,23 +2423,63 @@ class ESP32C3ROM(ESP32ROM):
     EFUSE_DIS_DOWNLOAD_MANUAL_ENCRYPT_REG = EFUSE_RD_REG_BASE
     EFUSE_DIS_DOWNLOAD_MANUAL_ENCRYPT = 1 << 20
 
+    EFUSE_SPI_BOOT_CRYPT_CNT_REG = EFUSE_BASE + 0x034
+    EFUSE_SPI_BOOT_CRYPT_CNT_MASK = 0x7 << 18
+
+    EFUSE_SECURE_BOOT_EN_REG = EFUSE_BASE + 0x038
+    EFUSE_SECURE_BOOT_EN_MASK = 1 << 20
+
     PURPOSE_VAL_XTS_AES128_KEY = 4
 
     GPIO_STRAP_REG = 0x3f404038
 
+    SUPPORTS_ENCRYPTED_FLASH = True
+
     FLASH_ENCRYPTED_WRITE_ALIGN = 16
 
-    MEMORY_MAP = [[0x00000000, 0x00010000, "PADDING"],
-                  [0x3C000000, 0x3C800000, "DROM"],
-                  [0x3FC80000, 0x3FCE0000, "DRAM"],
-                  [0x3FC88000, 0x3FD00000, "BYTE_ACCESSIBLE"],
-                  [0x3FF00000, 0x3FF20000, "DROM_MASK"],
-                  [0x40000000, 0x40060000, "IROM_MASK"],
-                  [0x42000000, 0x42800000, "IROM"],
-                  [0x4037C000, 0x403E0000, "IRAM"],
-                  [0x50000000, 0x50002000, "RTC_IRAM"],
-                  [0x50000000, 0x50002000, "RTC_DRAM"],
-                  [0x600FE000, 0x60100000, "MEM_INTERNAL2"]]
+    UARTDEV_BUF_NO = 0x3FCDF07C  # Variable in ROM .bss which indicates the port in use
+    UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3  # The above var when USB-JTAG/Serial is used
+
+    RTCCNTL_BASE_REG = 0x60008000
+    RTC_CNTL_SWD_CONF_REG = RTCCNTL_BASE_REG + 0x00AC
+    RTC_CNTL_SWD_AUTO_FEED_EN = 1 << 31
+    RTC_CNTL_SWD_WPROTECT_REG = RTCCNTL_BASE_REG + 0x00B0
+    RTC_CNTL_SWD_WKEY = 0x8F1D312A
+
+    RTC_CNTL_WDTCONFIG0_REG = RTCCNTL_BASE_REG + 0x0090
+    RTC_CNTL_WDTCONFIG1_REG = RTCCNTL_BASE_REG + 0x0094
+    RTC_CNTL_WDTWPROTECT_REG = RTCCNTL_BASE_REG + 0x00A8
+    RTC_CNTL_WDT_WKEY = 0x50D83AA1
+
+    MEMORY_MAP = [
+        [0x00000000, 0x00010000, "PADDING"],
+        [0x3C000000, 0x3C800000, "DROM"],
+        [0x3FC80000, 0x3FCE0000, "DRAM"],
+        [0x3FC88000, 0x3FD00000, "BYTE_ACCESSIBLE"],
+        [0x3FF00000, 0x3FF20000, "DROM_MASK"],
+        [0x40000000, 0x40060000, "IROM_MASK"],
+        [0x42000000, 0x42800000, "IROM"],
+        [0x4037C000, 0x403E0000, "IRAM"],
+        [0x50000000, 0x50002000, "RTC_IRAM"],
+        [0x50000000, 0x50002000, "RTC_DRAM"],
+        [0x600FE000, 0x60100000, "MEM_INTERNAL2"],
+    ]
+
+    UF2_FAMILY_ID = 0xD42BA06C
+
+    EFUSE_MAX_KEY = 5
+    KEY_PURPOSES: Dict[int, str] = {
+        0: "USER/EMPTY",
+        1: "RESERVED",
+        4: "XTS_AES_128_KEY",
+        5: "HMAC_DOWN_ALL",
+        6: "HMAC_DOWN_JTAG",
+        7: "HMAC_DOWN_DIGITAL_SIGNATURE",
+        8: "HMAC_UP",
+        9: "SECURE_BOOT_DIGEST0",
+        10: "SECURE_BOOT_DIGEST1",
+        11: "SECURE_BOOT_DIGEST2",
+    }
 
     # Returns old version format (ECO number). Use the new format get_chip_full_revision().
     def get_chip_revision(self):
@@ -2395,53 +2500,144 @@ class ESP32C3ROM(ESP32ROM):
         num_word = 5
         return (self.read_reg(self.EFUSE_BLOCK1_ADDR + (4 * num_word)) >> 24) & 0x03
 
+    def get_flash_cap(self):
+        num_word = 3
+        return (self.read_reg(self.EFUSE_BLOCK1_ADDR + (4 * num_word)) >> 27) & 0x07
+
+    def get_flash_vendor(self):
+        num_word = 4
+        vendor_id = (self.read_reg(self.EFUSE_BLOCK1_ADDR + (4 * num_word)) >> 0) & 0x07
+        return {1: "XMC", 2: "GD", 3: "FM", 4: "TT", 5: "ZBIT"}.get(vendor_id, "")
+
     def get_chip_description(self):
         chip_name = {
-            0: "ESP32-C3",
+            0: "ESP32-C3 (QFN32)",
+            1: "ESP8685 (QFN28)",
+            2: "ESP32-C3 AZ (QFN32)",
+            3: "ESP8686 (QFN24)",
         }.get(self.get_pkg_version(), "unknown ESP32-C3")
         major_rev = self.get_major_chip_version()
         minor_rev = self.get_minor_chip_version()
-        return "%s (revision v%d.%d)" % (chip_name, major_rev, minor_rev)
+        return f"{chip_name} (revision v{major_rev}.{minor_rev})"
 
     def get_chip_features(self):
-        return ["Wi-Fi", "BLE"]
+        features = ["WiFi", "BLE"]
+
+        flash = {
+            0: None,
+            1: "Embedded Flash 4MB",
+            2: "Embedded Flash 2MB",
+            3: "Embedded Flash 1MB",
+            4: "Embedded Flash 8MB",
+        }.get(self.get_flash_cap(), "Unknown Embedded Flash")
+        if flash is not None:
+            features += [flash + f" ({self.get_flash_vendor()})"]
+        return features
 
     def get_crystal_freq(self):
         # ESP32C3 XTAL is fixed to 40MHz
         return 40
 
-    def override_vddsdio(self, new_voltage):
-        raise NotImplementedInROMError("VDD_SDIO overrides are not supported for ESP32-C3")
+    def get_flash_voltage(self):
+        pass  # not supported on ESP32-C3
 
-    def read_mac(self):
+    def override_vddsdio(self, new_voltage):
+        raise NotImplementedInROMError(
+            "VDD_SDIO overrides are not supported for ESP32-C3"
+        )
+
+    def read_mac(self, mac_type="BASE_MAC"):
+        """Read MAC from EFUSE region"""
+        if mac_type != "BASE_MAC":
+            return None
         mac0 = self.read_reg(self.MAC_EFUSE_REG)
         mac1 = self.read_reg(self.MAC_EFUSE_REG + 4)  # only bottom 16 bits are MAC
         bitstring = struct.pack(">II", mac1, mac0)[2:]
-        try:
-            return tuple(ord(b) for b in bitstring)
-        except TypeError:  # Python 3, bitstring elements are already bytes
-            return tuple(bitstring)
+        return tuple(bitstring)
 
     def get_flash_crypt_config(self):
         return None  # doesn't exist on ESP32-C3
 
-    def get_key_block_purpose(self, key_block):
-        if key_block < 0 or key_block > 5:
-            raise FatalError("Valid key block numbers must be in range 0-5")
+    def get_secure_boot_enabled(self):
+        return (
+            self.read_reg(self.EFUSE_SECURE_BOOT_EN_REG)
+            & self.EFUSE_SECURE_BOOT_EN_MASK
+        )
 
-        reg, shift = [(self.EFUSE_PURPOSE_KEY0_REG, self.EFUSE_PURPOSE_KEY0_SHIFT),
-                      (self.EFUSE_PURPOSE_KEY1_REG, self.EFUSE_PURPOSE_KEY1_SHIFT),
-                      (self.EFUSE_PURPOSE_KEY2_REG, self.EFUSE_PURPOSE_KEY2_SHIFT),
-                      (self.EFUSE_PURPOSE_KEY3_REG, self.EFUSE_PURPOSE_KEY3_SHIFT),
-                      (self.EFUSE_PURPOSE_KEY4_REG, self.EFUSE_PURPOSE_KEY4_SHIFT),
-                      (self.EFUSE_PURPOSE_KEY5_REG, self.EFUSE_PURPOSE_KEY5_SHIFT)][key_block]
+    def get_key_block_purpose(self, key_block):
+        if key_block < 0 or key_block > self.EFUSE_MAX_KEY:
+            raise FatalError(
+                f"Valid key block numbers must be in range 0-{self.EFUSE_MAX_KEY}"
+            )
+
+        reg, shift = [
+            (self.EFUSE_PURPOSE_KEY0_REG, self.EFUSE_PURPOSE_KEY0_SHIFT),
+            (self.EFUSE_PURPOSE_KEY1_REG, self.EFUSE_PURPOSE_KEY1_SHIFT),
+            (self.EFUSE_PURPOSE_KEY2_REG, self.EFUSE_PURPOSE_KEY2_SHIFT),
+            (self.EFUSE_PURPOSE_KEY3_REG, self.EFUSE_PURPOSE_KEY3_SHIFT),
+            (self.EFUSE_PURPOSE_KEY4_REG, self.EFUSE_PURPOSE_KEY4_SHIFT),
+            (self.EFUSE_PURPOSE_KEY5_REG, self.EFUSE_PURPOSE_KEY5_SHIFT),
+        ][key_block]
         return (self.read_reg(reg) >> shift) & 0xF
 
     def is_flash_encryption_key_valid(self):
         # Need to see an AES-128 key
-        purposes = [self.get_key_block_purpose(b) for b in range(6)]
+        purposes = [
+            self.get_key_block_purpose(b) for b in range(self.EFUSE_MAX_KEY + 1)
+        ]
 
         return any(p == self.PURPOSE_VAL_XTS_AES128_KEY for p in purposes)
+
+    def uses_usb_jtag_serial(self, _cache=[]):
+        """
+        Check the UARTDEV_BUF_NO register to see if USB-JTAG/Serial is being used
+        """
+        if self.secure_download_mode:
+            return False  # can't detect USB-JTAG/Serial in secure download mode
+        if not _cache:
+            buf_no = self.read_reg(self.UARTDEV_BUF_NO) & 0xff
+            _cache.append(buf_no == self.UARTDEV_BUF_NO_USB_JTAG_SERIAL)
+        return _cache[0]
+
+    def disable_watchdogs(self):
+        # When USB-JTAG/Serial is used, the RTC WDT and SWD watchdog are not reset
+        # and can then reset the board during flashing. Disable or autofeed them.
+        if self.uses_usb_jtag_serial():
+            # Disable RTC WDT
+            self.write_reg(self.RTC_CNTL_WDTWPROTECT_REG, self.RTC_CNTL_WDT_WKEY)
+            self.write_reg(self.RTC_CNTL_WDTCONFIG0_REG, 0)
+            self.write_reg(self.RTC_CNTL_WDTWPROTECT_REG, 0)
+
+            # Automatically feed SWD
+            self.write_reg(self.RTC_CNTL_SWD_WPROTECT_REG, self.RTC_CNTL_SWD_WKEY)
+            self.write_reg(
+                self.RTC_CNTL_SWD_CONF_REG,
+                self.read_reg(self.RTC_CNTL_SWD_CONF_REG)
+                | self.RTC_CNTL_SWD_AUTO_FEED_EN,
+            )
+            self.write_reg(self.RTC_CNTL_SWD_WPROTECT_REG, 0)
+
+    def _post_connect(self):
+        if not self.sync_stub_detected:  # Don't run if stub is reused
+            self.disable_watchdogs()
+
+    def hard_reset(self):
+        if self.uses_usb_jtag_serial():
+            self.rtc_wdt_reset()
+        else:
+            print('Hard resetting via RTS pin...')
+            self._setRTS(True)  # EN->LOW
+            time.sleep(0.1)
+            self._setRTS(False)
+
+    def rtc_wdt_reset(self):
+        print("Hard resetting with RTC WDT...")
+        self.write_reg(self.RTC_CNTL_WDTWPROTECT_REG, self.RTC_CNTL_WDT_WKEY)  # unlock
+        self.write_reg(self.RTC_CNTL_WDTCONFIG1_REG, 5000)  # set WDT timeout
+        self.write_reg(
+            self.RTC_CNTL_WDTCONFIG0_REG, (1 << 31) | (5 << 28) | (1 << 8) | 2
+        )  # enable WDT
+        self.write_reg(self.RTC_CNTL_WDTWPROTECT_REG, 0)  # lock
 
 
 class ESP32C6ROM(ESP32C3ROM):
@@ -2538,7 +2734,7 @@ class ESP32C6ROM(ESP32C3ROM):
 
     UF2_FAMILY_ID = 0x540DDF62
 
-        # Returns old version format (ECO number). Use the new format get_chip_full_revision().
+    # Returns old version format (ECO number). Use the new format get_chip_full_revision().
     def get_chip_revision(self):
         return self.get_major_chip_version()
 
@@ -2622,7 +2818,6 @@ class ESP32C6ROM(ESP32C3ROM):
         return any(p == self.PURPOSE_VAL_XTS_AES128_KEY for p in purposes)
 
 
-
 class ESP32H2ROM(ESP32C6ROM):
     CHIP_NAME = "ESP32-H2"
     IMAGE_CHIP_ID = 16
@@ -2680,7 +2875,6 @@ class ESP32H2ROM(ESP32C6ROM):
         return 32
 
 
-
 class ESP32C2ROM(ESP32C3ROM):
     CHIP_NAME = "ESP32-C2"
     IMAGE_CHIP_ID = 12
@@ -2690,8 +2884,8 @@ class ESP32C2ROM(ESP32C3ROM):
     DROM_MAP_START = 0x3C000000
     DROM_MAP_END = 0x3C400000
 
-    # Magic value for ESP32C2 ECO0 and ECO1 respectively
-    CHIP_DETECT_MAGIC_VALUE = [0x6F51306F, 0x7C41A06F]
+    # Magic value for ESP32C2 ECO0 , ECO1 and ECO4 respectively
+    CHIP_DETECT_MAGIC_VALUE = [0x6F51306F, 0x7C41A06F, 0x0C21E06F]
 
     EFUSE_BASE = 0x60008800
     EFUSE_BLOCK2_ADDR = EFUSE_BASE + 0x040
@@ -2821,7 +3015,6 @@ class ESP32C2ROM(ESP32C3ROM):
                 if key_word[i] != 0:
                     return True
             return False
-
 
 
 class ESP32StubLoader(ESP32ROM):
@@ -3020,6 +3213,7 @@ def LoadFirmwareImage(chip, filename):
 class ImageSegment(object):
     """ Wrapper class for a segment in an ESP image
     (very similar to a section in an ELFImage also) """
+
     def __init__(self, addr, data, file_offs=None):
         self.addr = addr
         self.data = data
@@ -3065,6 +3259,7 @@ class ImageSegment(object):
 class ELFSection(ImageSegment):
     """ Wrapper class for a section in an ELF image, has a section
     name as well as the common properties of an ImageSegment. """
+
     def __init__(self, name, addr, data):
         super(ELFSection, self).__init__(addr, data)
         self.name = name.decode("utf-8")
@@ -3078,6 +3273,7 @@ class BaseFirmwareImage(object):
     SHA256_DIGEST_LEN = 32
 
     """ Base class with common firmware image functions """
+
     def __init__(self):
         self.segments = []
         self.entrypoint = 0
@@ -3086,7 +3282,8 @@ class BaseFirmwareImage(object):
         self.pad_to_size = 0
 
     def load_common_header(self, load_file, expected_magic):
-        (magic, segments, self.flash_mode, self.flash_size_freq, self.entrypoint) = struct.unpack('<BBBBI', load_file.read(8))
+        (magic, segments, self.flash_mode, self.flash_size_freq,
+         self.entrypoint) = struct.unpack('<BBBBI', load_file.read(8))
 
         if magic != expected_magic:
             raise FatalError('Invalid firmware image magic=0x%x' % (magic))
@@ -3094,7 +3291,8 @@ class BaseFirmwareImage(object):
 
     def verify(self):
         if len(self.segments) > 16:
-            raise FatalError('Invalid segment count %d (max 16). Usually this indicates a linker script problem.' % len(self.segments))
+            raise FatalError(
+                'Invalid segment count %d (max 16). Usually this indicates a linker script problem.' % len(self.segments))
 
     def load_segment(self, f, is_irom_segment=False):
         """ Load the next segment from the image file """
@@ -3103,7 +3301,8 @@ class BaseFirmwareImage(object):
         self.warn_if_unusual_segment(offset, size, is_irom_segment)
         segment_data = f.read(size)
         if len(segment_data) < size:
-            raise FatalError('End of file reading segment 0x%x, length %d (actual length %d)' % (offset, size, len(segment_data)))
+            raise FatalError('End of file reading segment 0x%x, length %d (actual length %d)' %
+                             (offset, size, len(segment_data)))
         segment = ImageSegment(offset, segment_data, file_offs)
         self.segments.append(segment)
         return segment
@@ -3467,8 +3666,10 @@ class ESP32FirmwareImage(BaseFirmwareImage):
             checksum = ESPLoader.ESP_CHECKSUM_MAGIC
 
             # split segments into flash-mapped vs ram-loaded, and take copies so we can mutate them
-            flash_segments = [copy.deepcopy(s) for s in sorted(self.segments, key=lambda s:s.addr) if self.is_flash_addr(s.addr)]
-            ram_segments = [copy.deepcopy(s) for s in sorted(self.segments, key=lambda s:s.addr) if not self.is_flash_addr(s.addr)]
+            flash_segments = [copy.deepcopy(s) for s in sorted(
+                self.segments, key=lambda s: s.addr) if self.is_flash_addr(s.addr)]
+            ram_segments = [copy.deepcopy(s) for s in sorted(
+                self.segments, key=lambda s: s.addr) if not self.is_flash_addr(s.addr)]
 
             # check for multiple ELF sections that are mapped in the same flash mapping region.
             # this is usually a sign of a broken linker script, but if you have a legitimate
@@ -3646,8 +3847,10 @@ class ESP8266V3FirmwareImage(ESP32FirmwareImage):
             checksum = ESPLoader.ESP_CHECKSUM_MAGIC
 
             # split segments into flash-mapped vs ram-loaded, and take copies so we can mutate them
-            flash_segments = [copy.deepcopy(s) for s in sorted(self.segments, key=lambda s:s.addr) if self.is_flash_addr(s.addr) and len(s.data)]
-            ram_segments = [copy.deepcopy(s) for s in sorted(self.segments, key=lambda s:s.addr) if not self.is_flash_addr(s.addr) and len(s.data)]
+            flash_segments = [copy.deepcopy(s) for s in sorted(
+                self.segments, key=lambda s: s.addr) if self.is_flash_addr(s.addr) and len(s.data)]
+            ram_segments = [copy.deepcopy(s) for s in sorted(self.segments, key=lambda s: s.addr)
+                            if not self.is_flash_addr(s.addr) and len(s.data)]
 
             # check for multiple ELF sections that are mapped in the same flash mapping region.
             # this is usually a sign of a broken linker script, but if you have a legitimate
@@ -3845,9 +4048,11 @@ class ELFFile(object):
         if byte(ident, 0) != 0x7f or ident[1:4] != b'ELF':
             raise FatalError("%s has invalid ELF magic header" % self.name)
         if machine not in [0x5e, 0xf3]:
-            raise FatalError("%s does not appear to be an Xtensa or an RISCV ELF file. e_machine=%04x" % (self.name, machine))
+            raise FatalError("%s does not appear to be an Xtensa or an RISCV ELF file. e_machine=%04x" %
+                             (self.name, machine))
         if shentsize != self.LEN_SEC_HEADER:
-            raise FatalError("%s has unexpected section header entry size 0x%x (not 0x%x)" % (self.name, shentsize, self.LEN_SEC_HEADER))
+            raise FatalError("%s has unexpected section header entry size 0x%x (not 0x%x)" %
+                             (self.name, shentsize, self.LEN_SEC_HEADER))
         if shnum == 0:
             raise FatalError("%s has 0 section headers" % (self.name))
         self._read_sections(f, shoff, shnum, shstrndx)
@@ -3860,7 +4065,8 @@ class ELFFile(object):
         if len(section_header) == 0:
             raise FatalError("No section header found at offset %04x in ELF file." % section_header_offs)
         if len(section_header) != (len_bytes):
-            raise FatalError("Only read 0x%x bytes from section header (expected 0x%x.) Truncated ELF file?" % (len(section_header), len_bytes))
+            raise FatalError("Only read 0x%x bytes from section header (expected 0x%x.) Truncated ELF file?" %
+                             (len(section_header), len_bytes))
 
         # walk through the section header and extract all sections
         section_header_offsets = range(0, len(section_header), self.LEN_SEC_HEADER)
@@ -3901,13 +4107,15 @@ class ELFFile(object):
         if len(segment_header) == 0:
             raise FatalError("No segment header found at offset %04x in ELF file." % segment_header_offs)
         if len(segment_header) != (len_bytes):
-            raise FatalError("Only read 0x%x bytes from segment header (expected 0x%x.) Truncated ELF file?" % (len(segment_header), len_bytes))
+            raise FatalError("Only read 0x%x bytes from segment header (expected 0x%x.) Truncated ELF file?" %
+                             (len(segment_header), len_bytes))
 
         # walk through the segment header and extract all segments
         segment_header_offsets = range(0, len(segment_header), self.LEN_SEG_HEADER)
 
         def read_segment_header(offs):
-            seg_type, seg_offs, _vaddr, lma, size, _memsize, _flags, _align = struct.unpack_from("<LLLLLLLL", segment_header[offs:])
+            seg_type, seg_offs, _vaddr, lma, size, _memsize, _flags, _align = struct.unpack_from(
+                "<LLLLLLLL", segment_header[offs:])
             return (seg_type, lma, size, seg_offs)
         all_segments = [read_segment_header(offs) for offs in segment_header_offsets]
         prog_segments = [s for s in all_segments if s[0] == ELFFile.SEG_TYPE_LOAD]
@@ -4044,6 +4252,7 @@ class HexFormatter(object):
     printed as separately indented lines, with ASCII decoding at the end
     of each line.
     """
+
     def __init__(self, binary_string, auto_split=True):
         self._s = binary_string
         self._auto_split = auto_split
@@ -4076,6 +4285,7 @@ class FatalError(RuntimeError):
     Wrapper class for runtime errors that aren't caused by internal bugs, but by
     ESP ROM responses or input content.
     """
+
     def __init__(self, message):
         RuntimeError.__init__(self, message)
 
@@ -4122,6 +4332,7 @@ class NotImplementedInROMError(FatalError):
     Wrapper class for the error thrown when a particular ESP bootloader function
     is not implemented in the ROM bootloader.
     """
+
     def __init__(self, bootloader, func):
         FatalError.__init__(self, "%s ROM does not support function %s." % (bootloader.CHIP_NAME, func.__name__))
 
@@ -4142,6 +4353,7 @@ class UnsupportedCommandError(RuntimeError):
 
     Usually this indicates the loader is running in Secure Download Mode.
     """
+
     def __init__(self, esp, op):
         if esp.secure_download_mode:
             msg = "This command (0x%x) is not supported in Secure Download Mode" % op
@@ -4196,7 +4408,8 @@ def dump_mem(esp, args):
 def detect_flash_size(esp, args):
     if args.flash_size == 'detect':
         if esp.secure_download_mode:
-            raise FatalError("Detecting flash size is not supported in secure download mode. Need to manually specify flash size.")
+            raise FatalError(
+                "Detecting flash size is not supported in secure download mode. Need to manually specify flash size.")
         flash_id = esp.flash_id()
         size_id = flash_id >> 16
         args.flash_size = DETECTED_FLASH_SIZES.get(size_id)
@@ -4232,7 +4445,8 @@ def _update_image_flash_params(esp, address, args, image):
         test_image = esp.BOOTLOADER_IMAGE(io.BytesIO(image))
         test_image.verify()
     except Exception:
-        print("Warning: Image file at 0x%x is not a valid %s image, so not changing any flash settings." % (address, esp.CHIP_NAME))
+        print("Warning: Image file at 0x%x is not a valid %s image, so not changing any flash settings." %
+              (address, esp.CHIP_NAME))
         return image
 
     if args.flash_mode != 'keep':
@@ -4291,7 +4505,8 @@ def write_flash(esp, args):
                 do_write = False
 
         if not do_write and not args.ignore_flash_encryption_efuse_setting:
-            raise FatalError("Can't perform encrypted flash write, consult Flash Encryption documentation for more information")
+            raise FatalError(
+                "Can't perform encrypted flash write, consult Flash Encryption documentation for more information")
 
     # verify file sizes fit in flash
     if args.flash_size != 'keep':  # TODO: check this even with 'keep'
@@ -4419,7 +4634,8 @@ def write_flash(esp, args):
         else:
             if t > 0.0:
                 speed_msg = " (%.1f kbit/s)" % (bytes_written / t * 8 / 1000)
-            print_overwrite('Wrote %d bytes at 0x%08x in %.1f seconds%s...' % (bytes_written, address, t, speed_msg), last_line=True)
+            print_overwrite('Wrote %d bytes at 0x%08x in %.1f seconds%s...' %
+                            (bytes_written, address, t, speed_msg), last_line=True)
 
         if not encrypted and not esp.secure_download_mode:
             try:
@@ -4670,7 +4886,8 @@ def verify_flash(esp, args):
         image = _update_image_flash_params(esp, address, args, image)
 
         image_size = len(image)
-        print('Verifying 0x%x (%d) bytes @ 0x%08x in flash against %s...' % (image_size, image_size, address, argfile.name))
+        print('Verifying 0x%x (%d) bytes @ 0x%08x in flash against %s...' %
+              (image_size, image_size, address, argfile.name))
         # Try digest first, only read if there are differences.
         digest = esp.flash_md5sum(address, image_size)
         expected_digest = hashlib.md5(image).hexdigest()
@@ -4726,7 +4943,8 @@ def merge_bin(args):
     try:
         chip_class = _chip_to_rom_loader(args.chip)
     except KeyError:
-        msg = "Please specify the chip argument" if args.chip == "auto" else "Invalid chip choice: '{}'".format(args.chip)
+        msg = "Please specify the chip argument" if args.chip == "auto" else "Invalid chip choice: '{}'".format(
+            args.chip)
         msg = msg + " (choose from {})".format(', '.join(SUPPORTED_CHIPS))
         raise FatalError(msg)
 
@@ -4736,7 +4954,8 @@ def merge_bin(args):
         raise FatalError("No input files specified")
     first_addr = input_files[0][0]
     if first_addr < args.target_offset:
-        raise FatalError("Output file target offset is 0x%x. Input file offset 0x%x is before this." % (args.target_offset, first_addr))
+        raise FatalError("Output file target offset is 0x%x. Input file offset 0x%x is before this." %
+                         (args.target_offset, first_addr))
 
     if args.format != 'raw':
         raise FatalError("This version of esptool only supports the 'raw' output format")
@@ -4752,7 +4971,8 @@ def merge_bin(args):
             of.write(image)
         if args.fill_flash_size:
             pad_to(flash_size_bytes(args.fill_flash_size))
-        print("Wrote 0x%x bytes to file %s, ready to flash to offset 0x%x" % (of.tell(), args.output, args.target_offset))
+        print("Wrote 0x%x bytes to file %s, ready to flash to offset 0x%x" %
+              (of.tell(), args.output, args.target_offset))
 
 
 def version(args):
@@ -4776,7 +4996,8 @@ def main(argv=None, esp=None):
 
     external_esp = esp is not None
 
-    parser = argparse.ArgumentParser(description='esptool.py v%s - Espressif chips ROM Bootloader Utility' % __version__, prog='esptool')
+    parser = argparse.ArgumentParser(
+        description='esptool.py v%s - Espressif chips ROM Bootloader Utility' % __version__, prog='esptool')
 
     parser.add_argument('--chip', '-c',
                         help='Target chip type',
@@ -4861,7 +5082,8 @@ def main(argv=None, esp=None):
         help='Read-modify-write to arbitrary memory location')
     parser_write_mem.add_argument('address', help='Address to write', type=arg_auto_int)
     parser_write_mem.add_argument('value', help='Value', type=arg_auto_int)
-    parser_write_mem.add_argument('mask', help='Mask of bits to write', type=arg_auto_int, nargs='?', default='0xFFFFFFFF')
+    parser_write_mem.add_argument('mask', help='Mask of bits to write',
+                                  type=arg_auto_int, nargs='?', default='0xFFFFFFFF')
 
     def add_spi_flash_subparsers(parent, allow_keep, auto_detect):
         """ Add common parser arguments for SPI flash properties """
@@ -4877,7 +5099,8 @@ def main(argv=None, esp=None):
             extra_fs_message = ""
 
         parent.add_argument('--flash_freq', '-ff', help='SPI Flash frequency',
-                            choices=extra_keep_args + ['80m', '60m', '48m', '40m', '30m', '26m', '24m', '20m', '16m', '15m', '12m'],
+                            choices=extra_keep_args + ['80m', '60m', '48m', '40m',
+                                                       '30m', '26m', '24m', '20m', '16m', '15m', '12m'],
                             default=os.environ.get('ESPTOOL_FF', 'keep' if allow_keep else '40m'))
         parent.add_argument('--flash_mode', '-fm', help='SPI Flash mode',
                             choices=extra_keep_args + ['qio', 'qout', 'dio', 'dout'],
@@ -4938,7 +5161,8 @@ def main(argv=None, esp=None):
         'elf2image',
         help='Create an application image from ELF file')
     parser_elf2image.add_argument('input', help='Input ELF file')
-    parser_elf2image.add_argument('--output', '-o', help='Output filename prefix (for version 1 image), or filename (for version 2 single image)', type=str)
+    parser_elf2image.add_argument(
+        '--output', '-o', help='Output filename prefix (for version 1 image), or filename (for version 2 single image)', type=str)
     parser_elf2image.add_argument('--version', '-e', help='Output image version', choices=['1', '2', '3'], default='1')
     parser_elf2image.add_argument(
         # kept for compatibility
@@ -4978,7 +5202,8 @@ def main(argv=None, esp=None):
                                   type=arg_auto_int, default=None)
     parser_elf2image.add_argument('--use_segments', help='If set, ELF segments will be used instead of ELF sections to genereate the image.',
                                   action='store_true')
-    parser_elf2image.add_argument('--flash-mmu-page-size', help="Change flash MMU page size.", choices=['64KB', '32KB', '16KB'])
+    parser_elf2image.add_argument('--flash-mmu-page-size', help="Change flash MMU page size.",
+                                  choices=['64KB', '32KB', '16KB'])
     parser_elf2image.add_argument(
         "--pad-to-size",
         help="The block size with which the final binary image after padding must be aligned to. Value 0xFF is used for padding, similar to erase_flash",
@@ -5004,15 +5229,18 @@ def main(argv=None, esp=None):
         help='Read SPI flash status register')
 
     add_spi_connection_arg(parser_read_status)
-    parser_read_status.add_argument('--bytes', help='Number of bytes to read (1-3)', type=int, choices=[1, 2, 3], default=2)
+    parser_read_status.add_argument('--bytes', help='Number of bytes to read (1-3)',
+                                    type=int, choices=[1, 2, 3], default=2)
 
     parser_write_status = subparsers.add_parser(
         'write_flash_status',
         help='Write SPI flash status register')
 
     add_spi_connection_arg(parser_write_status)
-    parser_write_status.add_argument('--non-volatile', help='Write non-volatile bits (use with caution)', action='store_true')
-    parser_write_status.add_argument('--bytes', help='Number of status bytes to write (1-3)', type=int, choices=[1, 2, 3], default=2)
+    parser_write_status.add_argument(
+        '--non-volatile', help='Write non-volatile bits (use with caution)', action='store_true')
+    parser_write_status.add_argument('--bytes', help='Number of status bytes to write (1-3)',
+                                     type=int, choices=[1, 2, 3], default=2)
     parser_write_status.add_argument('value', help='New value', type=arg_auto_int)
 
     parser_read_flash = subparsers.add_parser(
@@ -5043,14 +5271,16 @@ def main(argv=None, esp=None):
         help='Erase a region of the flash')
     add_spi_connection_arg(parser_erase_region)
     parser_erase_region.add_argument('address', help='Start address (must be multiple of 4096)', type=arg_auto_int)
-    parser_erase_region.add_argument('size', help='Size of region to erase (must be multiple of 4096)', type=arg_auto_int)
+    parser_erase_region.add_argument(
+        'size', help='Size of region to erase (must be multiple of 4096)', type=arg_auto_int)
 
     parser_merge_bin = subparsers.add_parser(
         'merge_bin',
         help='Merge multiple raw binary files into a single file for later flashing')
 
     parser_merge_bin.add_argument('--output', '-o', help='Output filename', type=str, required=True)
-    parser_merge_bin.add_argument('--format', '-f', help='Format of the output file', choices='raw', default='raw')  # for future expansion
+    parser_merge_bin.add_argument('--format', '-f', help='Format of the output file',
+                                  choices='raw', default='raw')  # for future expansion
     add_spi_flash_subparsers(parser_merge_bin, allow_keep=True, auto_detect=False)
 
     parser_merge_bin.add_argument('--target-offset', '-t', help='Target offset where the output file will be flashed',
@@ -5112,7 +5342,8 @@ def main(argv=None, esp=None):
                                                   before=args.before)
 
         if esp is None:
-            raise FatalError("Could not connect to an Espressif device on any of the %d available serial ports." % len(ser_list))
+            raise FatalError(
+                "Could not connect to an Espressif device on any of the %d available serial ports." % len(ser_list))
 
         if esp.secure_download_mode:
             print("Chip is %s in Secure Download Mode" % esp.CHIP_NAME)
@@ -5280,6 +5511,7 @@ def get_port_list():
         ]
     return port_list
 
+
 def expand_file_arguments(argv):
     """ Any argument starting with "@" gets replaced with all values read from a text file.
     Text file arguments can be split by newline or by space.
@@ -5306,6 +5538,7 @@ class FlashSizeAction(argparse.Action):
 
     (At next major relase, remove deprecated sizes and this can become a 'normal' choices= argument again.)
     """
+
     def __init__(self, option_strings, dest, nargs=1, auto_detect=False, **kwargs):
         super(FlashSizeAction, self).__init__(option_strings, dest, nargs, **kwargs)
         self._auto_detect = auto_detect
@@ -5333,13 +5566,15 @@ class FlashSizeAction(argparse.Action):
             known_sizes['detect'] = 'detect'
             known_sizes['keep'] = 'keep'
         if value not in known_sizes:
-            raise argparse.ArgumentError(self, '%s is not a known flash size. Known sizes: %s' % (value, ", ".join(known_sizes.keys())))
+            raise argparse.ArgumentError(self, '%s is not a known flash size. Known sizes: %s' %
+                                         (value, ", ".join(known_sizes.keys())))
         setattr(namespace, self.dest, value)
 
 
 class SpiConnectionAction(argparse.Action):
     """ Custom action to parse 'spi connection' override. Values are SPI, HSPI, or a sequence of 5 pin numbers separated by commas.
     """
+
     def __call__(self, parser, namespace, value, option_string=None):
         if value.upper() == "SPI":
             value = 0
@@ -5348,11 +5583,13 @@ class SpiConnectionAction(argparse.Action):
         elif "," in value:
             values = value.split(",")
             if len(values) != 5:
-                raise argparse.ArgumentError(self, '%s is not a valid list of comma-separate pin numbers. Must be 5 numbers - CLK,Q,D,HD,CS.' % value)
+                raise argparse.ArgumentError(
+                    self, '%s is not a valid list of comma-separate pin numbers. Must be 5 numbers - CLK,Q,D,HD,CS.' % value)
             try:
                 values = tuple(int(v, 0) for v in values)
             except ValueError:
-                raise argparse.ArgumentError(self, '%s is not a valid argument. All pins must be numeric values' % values)
+                raise argparse.ArgumentError(
+                    self, '%s is not a valid argument. All pins must be numeric values' % values)
             if any([v for v in values if v > 33 or v < 0]):
                 raise argparse.ArgumentError(self, 'Pin numbers must be in the range 0-33.')
             # encode the pin numbers as a 32-bit integer with packed 6-bit values, the same way ESP32 ROM takes them
@@ -5367,6 +5604,7 @@ class SpiConnectionAction(argparse.Action):
 
 class AddrFilenamePairAction(argparse.Action):
     """ Custom parser class for the address/filename pairs passed as arguments """
+
     def __init__(self, option_strings, dest, nargs='+', **kwargs):
         super(AddrFilenamePairAction, self).__init__(option_strings, dest, nargs, **kwargs)
 
@@ -5756,5 +5994,3 @@ def _main():
 
 if __name__ == '__main__':
     _main()
-
-

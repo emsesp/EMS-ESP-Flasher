@@ -114,9 +114,9 @@ def show_logs(serial_port):
 
             hide_line = False
 
-            # check if message contains the words CTRL-C
-            if "CTRL-C" in line:
-                serial_port.write(b"\x03")
+            # check if message contains the words CTRL-D
+            if "CTRL-D" in line:
+                serial_port.write(b"\x04")
                 serial_port.write("show log\n".encode())
                 hide_line = True
                 continue
