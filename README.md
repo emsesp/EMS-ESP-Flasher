@@ -2,7 +2,7 @@
 
 Flash tool for uploading EMS-ESP firmware.
 
-Based on [https://github.com/Jason2866/ESP_Flasher/](https://github.com/Jason2866/ESP_Flasher/) version 3.0.3 with these modifications:
+Based on [https://github.com/Jason2866/ESP_Flasher/](https://github.com/Jason2866/ESP_Flasher/) version 3.0.4 with these modifications:
 
 - uses EMS-ESP specific partitions
 - added option to not erase flash and retain settings (--no-erase option)
@@ -10,7 +10,7 @@ Based on [https://github.com/Jason2866/ESP_Flasher/](https://github.com/Jason286
 - removed show logs option
 - update with EMS-ESP icons
 - updated to from PyQt5 to PyQt6 and made the UI a little nicer
-- auto CTRL-C to log into to EMS-ESP console
+- auto CTRL-D to log into to EMS-ESP console
 - update setuptools - moved to a .toml file. See <https://setuptools.pypa.io/en/latest/userguide/>
 - note: GitHub Action build.yml uses `jason2866/upload-artifact@v2.0.3` instead of `actions/upload-artifact@v4` because of the multi-artifact feature (<https://github.com/actions/download-artifact/pull/202>)
 
