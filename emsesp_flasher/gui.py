@@ -203,7 +203,8 @@ def main():
     elif os_name == 'Linux':
         distro_name = distro.id().lower()
         if 'ubuntu' in distro_name or 'debian' in distro_name:
-            os.environ['QT_QPA_PLATFORM'] = 'wayland'
+            # os.environ['QT_QPA_PLATFORM'] = 'wayland'
+            pass
         else:
             os.environ['QT_QPA_PLATFORM'] = 'xcb'
     elif os_name == 'Windows':

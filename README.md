@@ -30,7 +30,7 @@ pip install --upgrade build
 pip install -e .
 ```
 
-To build and test the a module for distribution (places in `dist` folder):
+To build and test the a module for distribution (places in the `dist` folder):
 
 ```sh
 python -m build
@@ -40,7 +40,7 @@ python -m build
 pip install --editable .
 ```
 
-To run as a module, when building and testing locally:
+To run as a module, for building and testing locally:
 
 ```sh
 python -m emsesp_flasher
@@ -70,7 +70,7 @@ If the Windows firewall blocks the .exe file, it's a false positive and you can 
 
 ## Creating the installers in GitHub
 
-The binary artifacts will only be created on a tag. Use:
+The binary artifacts will only be created on a tag push. Use for example:
 
 ```sh
 git tag -f v1.1.0 
